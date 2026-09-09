@@ -10,6 +10,8 @@
         "model.call.failed",
         "tool.authorized",
         "tool.denied",
+        "tool.unknown",
+        "tool.input_rejected",
         "tool.executed",
         "tool.failed",
         "evidence.recorded",

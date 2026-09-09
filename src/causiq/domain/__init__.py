@@ -20,6 +20,7 @@ from causiq.domain.enums import (
     Confidence,
     EvidenceSource,
     HypothesisStatus,
+    RiskLevel,
     RunState,
     Severity,
 )
@@ -47,6 +48,7 @@ __all__ = [
     "HypothesisStatus",
     "Incident",
     "InvestigationRun",
+    "RiskLevel",
     "RunState",
     "Severity",
 ]

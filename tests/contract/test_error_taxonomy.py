@@ -22,7 +22,10 @@ from causiq.errors import (
     ToolAuthorizationError,
     ToolError,
     ToolExecutionError,
+    ToolInputValidationError,
+    ToolRegistrationError,
     ToolTimeoutError,
+    UnknownToolError,
     UnresolvedCitationError,
     all_error_types,
 )
@@ -44,7 +47,10 @@ EXPECTED_TAXONOMY = {
     "ToolAuthorizationError",
     "ToolError",
     "ToolExecutionError",
+    "ToolInputValidationError",
+    "ToolRegistrationError",
     "ToolTimeoutError",
+    "UnknownToolError",
     "UnresolvedCitationError",
 }
 
@@ -53,7 +59,9 @@ RECOVERABLE = {
     ToolError,
     ToolAuthorizationError,
     ToolExecutionError,
+    ToolInputValidationError,
     ToolTimeoutError,
+    UnknownToolError,
 }
 
 
@@ -101,6 +109,19 @@ def test_refusals_are_not_retried() -> None:
     assert ModelTransientError.recoverable
 
 
+def test_tool_registration_failure_is_a_configuration_error() -> None:
+    """The tool surface is fixed before a run starts, so a bad registration is a
+    start-up fault, not something a run can recover from mid-flight."""
+    assert issubclass(ToolRegistrationError, ConfigurationError)
+    assert ToolRegistrationError.recoverable is False
+
+
+def test_unknown_tool_and_bad_input_are_recoverable() -> None:
+    """Both become an is_error tool result the model reads and adapts to."""
+    assert UnknownToolError.recoverable
+    assert ToolInputValidationError.recoverable
+
+
 def test_hierarchy_is_as_documented() -> None:
     assert issubclass(UnresolvedCitationError, DomainError)
     assert issubclass(LedgerIntegrityError, DomainError)
@@ -108,6 +129,8 @@ def test_hierarchy_is_as_documented() -> None:
     assert issubclass(ModelRefusalError, ModelError)
     assert issubclass(ModelContractError, ModelError)
     assert issubclass(ToolAuthorizationError, ToolError)
+    assert issubclass(UnknownToolError, ToolError)
+    assert issubclass(ToolInputValidationError, ToolError)
     assert issubclass(ConfigurationError, CausiqError)
     assert issubclass(BudgetExceededError, CausiqError)
 

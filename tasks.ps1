@@ -39,7 +39,7 @@ function Invoke-Cov {
     Invoke-Uv pytest -m 'not live' --cov --cov-report=term-missing --cov-fail-under=85
     # Gate 2: 100% on the invariant-critical modules.
     Invoke-Uv pytest -m 'not live' -q --cov=src/causiq/domain --cov=src/causiq/evidence `
-        --cov=src/causiq/authz --cov-report=term-missing --cov-fail-under=100
+        --cov=src/causiq/authz --cov=src/causiq/tools --cov-report=term-missing --cov-fail-under=100
 }
 
 switch ($Target) {

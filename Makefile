@@ -42,11 +42,12 @@ test:
 
 # Two gates, per Engineering Contract 10:
 #   1. >= 85% across src/causiq
-#   2. 100% on the invariant-critical modules (domain, evidence, authz)
+#   2. 100% on the invariant-critical modules (domain, evidence, authz, tools)
 cov:
 	$(UV) pytest -m "not live" --cov --cov-report=term-missing --cov-fail-under=85
 	$(UV) pytest -m "not live" -q --cov=src/causiq/domain --cov=src/causiq/evidence \
-		--cov=src/causiq/authz --cov-report=term-missing --cov-fail-under=100
+		--cov=src/causiq/authz --cov=src/causiq/tools \
+		--cov-report=term-missing --cov-fail-under=100
 
 test-live:
 	$(UV) pytest -m live

@@ -38,6 +38,8 @@ class AuditEventType(StrEnum):
     MODEL_CALL_FAILED = "model.call.failed"
     TOOL_AUTHORIZED = "tool.authorized"
     TOOL_DENIED = "tool.denied"
+    TOOL_UNKNOWN = "tool.unknown"
+    TOOL_INPUT_REJECTED = "tool.input_rejected"
     TOOL_EXECUTED = "tool.executed"
     TOOL_FAILED = "tool.failed"
     EVIDENCE_RECORDED = "evidence.recorded"

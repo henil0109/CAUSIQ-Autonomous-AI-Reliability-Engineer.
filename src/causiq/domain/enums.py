@@ -88,6 +88,21 @@ class HypothesisStatus(StrEnum):
     REFUTED = "refuted"
 
 
+class RiskLevel(StrEnum):
+    """How much damage a tool could do if it misbehaved.
+
+    Distinct from `mutating`, which is a hard security classification. Risk is
+    advisory metadata: a read-only tool against production can still be HIGH if
+    it is expensive or contention-prone. Phase 5 uses it to decide which
+    remediations need a stricter approval; Phase 0 records it so the audit trail
+    carries it from the start.
+    """
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 class AgentRole(StrEnum):
     """Roles an agent identity may hold.
 

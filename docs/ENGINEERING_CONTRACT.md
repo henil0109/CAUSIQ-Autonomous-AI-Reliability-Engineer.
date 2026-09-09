@@ -600,7 +600,9 @@ Rules:
 - Live-API tests are marked and **skipped** when `ANTHROPIC_API_KEY` is absent — never silently
   passing, always visibly skipped.
 - Coverage gate on `src/causiq/` starting at 85%, with the domain layer, the authorization path,
-  and the citation validator required at 100%. Coverage is a floor, not a goal.
+  the citation validator, and the capability layer (`tools/`) required at 100%. Those four are
+  where the invariants are enforced; an uncovered branch in one of them is an unenforced rule.
+  Coverage is a floor, not a goal.
 - Every bug fix begins with a failing test.
 - Determinism: the `Clock` port and seeded ids mean two runs of the offline suite produce
   byte-identical audit journals. Non-determinism in tests is treated as a defect.

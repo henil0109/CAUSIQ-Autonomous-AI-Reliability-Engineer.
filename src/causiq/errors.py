@@ -57,6 +57,16 @@ class ConfigurationError(CausiqError):
     """
 
 
+class ToolRegistrationError(ConfigurationError):
+    """A tool could not be registered.
+
+    A duplicate name, a malformed name, or an argument model that would produce a
+    schema the API cannot accept. Fatal and start-up-only: the tool surface is
+    fixed before a run begins, so a registration fault can never surprise a run in
+    progress - and a shifting tool set would break prompt-cache stability anyway.
+    """
+
+
 # --------------------------------------------------------------------------- #
 # Domain invariant violations - always fatal to the run
 # --------------------------------------------------------------------------- #
@@ -115,6 +125,24 @@ class ToolError(CausiqError):
     """Base for failures originating from a tool call."""
 
     recoverable: ClassVar[bool] = True
+
+
+class UnknownToolError(ToolError):
+    """The model asked for a tool that is not registered.
+
+    Recoverable: the model is told the call failed and which tools exist, and it
+    adapts. Notably this is *not* an authorization failure - an unregistered name
+    never reaches authorization at all, because there is no capability to check.
+    """
+
+
+class ToolInputValidationError(ToolError):
+    """Tool arguments did not satisfy the tool's declared input schema.
+
+    Recoverable. Strict tool schemas make this rare, which is exactly why it is
+    worth surfacing rather than coercing: a call that reaches here is a genuine
+    contract breach, not a formatting quirk.
+    """
 
 
 class ToolAuthorizationError(ToolError):
