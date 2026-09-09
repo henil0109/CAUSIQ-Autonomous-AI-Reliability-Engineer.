@@ -1,0 +1,65 @@
+{
+  "$defs": {
+    "Severity": {
+      "description": "Incident severity, as reported by whatever detected it.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A reported reliability failure awaiting explanation. Immutable.",
+  "properties": {
+    "affected_assets": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Affected Assets",
+      "type": "array"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "detected_at": {
+      "format": "date-time",
+      "title": "Detected At",
+      "type": "string"
+    },
+    "detected_by": {
+      "minLength": 1,
+      "title": "Detected By",
+      "type": "string"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "incident_id",
+    "title",
+    "description",
+    "severity",
+    "detected_at",
+    "detected_by"
+  ],
+  "title": "Incident",
+  "type": "object"
+}

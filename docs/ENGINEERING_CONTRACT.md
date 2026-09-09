@@ -1,9 +1,9 @@
 # Causiq — Engineering Contract
 
 **Project:** Causiq — Autonomous AI Reliability Engineer
-**Status:** Draft v1.0 — awaiting approval before Phase 0 implementation
+**Status:** v1.0 approved — Phase 0 in progress (P0.1–P0.3 complete)
 **Owner:** Henil Patel
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-09
 
 This document is the binding technical agreement for how Causiq is built. It defines the
 problem, the invariants, the architecture, the technology decisions and their rationale, and
@@ -200,7 +200,9 @@ deterministically, and why adding Langfuse later is an adapter, not a refactor."
 causiq/
 ├── pyproject.toml                 # single source of deps, tool config, package metadata
 ├── uv.lock                        # pinned, committed — reproducible builds
-├── Makefile                       # one verb per workflow: setup/lint/type/test/run/eval
+├── Makefile                       # one verb per workflow: setup/lint/type/test/cov
+├── tasks.ps1                      # the same verbs on Windows, where make is absent
+├── .github/workflows/ci.yml       # the gate: lint + types + both coverage gates
 ├── .env.example                   # documented config surface; never a real secret
 ├── README.md
 ├── docs/
@@ -214,18 +216,25 @@ causiq/
 │   ├── logging.py                 # structlog; run_id/incident_id bound to every line
 │   ├── ids.py                     # prefixed, sortable identifiers
 │   ├── domain/                    # pure models, zero I/O
+│   │   ├── enums.py               # closed vocabularies
 │   │   ├── incident.py
 │   │   ├── evidence.py
+│   │   ├── hypothesis.py
 │   │   ├── analysis.py
+│   │   ├── budget.py              # Budget + BudgetTracker (invariant I5)
+│   │   ├── audit.py               # AuditEntry, AuditEventType
 │   │   └── run.py
 │   ├── evidence/
 │   │   └── ledger.py              # append-only ledger + citation validator (I1)
-│   ├── tools/
+│   ├── clock.py                   # Clock port: SystemClock + FrozenClock
+│   ├── authz/                     # identity and authorization (invariant I4)
+│   │   ├── models.py              # AgentIdentity, Permission, ApprovalToken
+│   │   └── decision.py            # authorize() - the single gate
+│   ├── tools/                     # [P0.4] not yet implemented
 │   │   ├── base.py                # Tool protocol: name, description, schema, permission
 │   │   ├── registry.py            # deterministic ordering (prompt-cache stability)
-│   │   ├── authz.py               # AgentIdentity, Permission, authorization decision
 │   │   ├── executor.py            # authorize → validate → execute → record → audit
-│   │   └── warehouse.py           # P0: query_warehouse (read-only DuckDB)
+│   │   └── warehouse.py           # P0.5: query_warehouse (read-only DuckDB)
 │   ├── llm/
 │   │   ├── ports.py               # ModelClient protocol
 │   │   ├── anthropic_client.py    # the real adapter (SDK, retries, usage capture)
@@ -255,6 +264,10 @@ causiq/
     └── seed_warehouse.py
 ```
 
+- **Why `authz/` is its own package rather than `tools/authz.py`:** authorization is a property
+  of identities and capabilities, not of tools. The P0.4 tool executor is one of its *callers*.
+  Keeping the dependency pointing that way let the authorization rules - including the Phase 5
+  approval gate - be implemented and tested in P0.3, before any tool existed.
 - **Why `src/` layout:** it makes it impossible to accidentally test the working directory
   instead of the installed package — a real and common class of false-green test suites.
 - **Why fixtures are versioned in-repo:** invariant I6. If the substrate drifts, evaluation

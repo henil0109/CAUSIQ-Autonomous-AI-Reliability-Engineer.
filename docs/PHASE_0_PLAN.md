@@ -1,9 +1,9 @@
 # Causiq — Phase 0 Foundation Plan
 
 **Phase:** P0 — Walking Skeleton
-**Status:** Proposed — awaiting approval before implementation
+**Status:** Approved — P0.1, P0.2 and P0.3 complete; P0.4 awaiting approval
 **Depends on:** `ENGINEERING_CONTRACT.md` v1.0
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-09
 
 ---
 

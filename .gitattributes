@@ -1,0 +1,11 @@
+# Normalise line endings in the repository to LF.
+#
+# This matters more than usual here: the project is maintained in two
+# independent repositories (ADR-0006) whose content must be byte-identical at
+# each milestone. Without normalisation, the tree hashes would diverge on a
+# Windows checkout and the content-equality verification would be meaningless.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.duckdb binary

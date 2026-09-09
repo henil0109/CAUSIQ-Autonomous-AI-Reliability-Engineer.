@@ -5,7 +5,34 @@ from authorized systems, correlates it on a shared incident timeline, and produc
 analysis in which **every claim resolves to a specific recorded piece of evidence**. Remediation
 is proposed, never executed without human approval, and verified afterwards.
 
-**Status:** Phase 0 in progress. Planning artifacts approved; foundation implementation underway.
+**Status:** Phase 0 in progress. P0.1 (foundation), P0.2 (config / logging / errors / ports)
+and P0.3 (domain model + evidence ledger) are complete and `hardened`. The agent loop, the
+`query_warehouse` tool, and the Anthropic adapter arrive in P0.4-P0.7.
+
+## Getting started
+
+Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+.
+
+```bash
+git clone <this repo> && cd CAUSIQ
+uv sync --extra dev          # or: make setup   /   ./tasks.ps1 setup
+```
+
+Then run the gate. It is offline and deterministic: **no API key, no network**.
+
+| Task | macOS / Linux | Windows |
+|---|---|---|
+| Everything CI runs | `make check` | `./tasks.ps1 check` |
+| Tests only | `make test` | `./tasks.ps1 test` |
+| Lint + format check | `make lint` | `./tasks.ps1 lint` |
+| Type check | `make type` | `./tasks.ps1 type` |
+| Coverage gates | `make cov` | `./tasks.ps1 cov` |
+
+`make` is not installed on Windows by default, which is why `tasks.ps1` exists; it runs the same
+commands. Both use `uv run --no-sync`, because the working copy lives in a OneDrive-synced folder
+where uv's reinstall step intermittently hits a locked directory.
+
+Expected result: **178 passed**, 100% coverage, mypy and ruff clean.
 
 ## Documents
 

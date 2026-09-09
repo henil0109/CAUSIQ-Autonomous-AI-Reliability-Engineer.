@@ -1,0 +1,66 @@
+{
+  "$defs": {
+    "AuditEventType": {
+      "description": "Everything worth reconstructing after the fact.\n\nPhase 0 emits the run, authorization, evidence and analysis events. The model\nand tool-execution events are declared now because the taxonomy should be\nstable before the agent loop lands in P0.6/P0.7 - adding a member later is\nfine, renaming one breaks every stored journal.",
+      "enum": [
+        "run.started",
+        "run.ended",
+        "model.call.requested",
+        "model.call.completed",
+        "model.call.failed",
+        "tool.authorized",
+        "tool.denied",
+        "tool.executed",
+        "tool.failed",
+        "evidence.recorded",
+        "analysis.validated",
+        "analysis.rejected"
+      ],
+      "title": "AuditEventType",
+      "type": "string"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "One immutable record of something that happened during a run.",
+  "properties": {
+    "actor": {
+      "minLength": 1,
+      "title": "Actor",
+      "type": "string"
+    },
+    "at": {
+      "format": "date-time",
+      "title": "At",
+      "type": "string"
+    },
+    "detail": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Detail",
+      "type": "object"
+    },
+    "event": {
+      "$ref": "#/$defs/AuditEventType"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "sequence",
+    "run_id",
+    "at",
+    "event",
+    "actor"
+  ],
+  "title": "AuditEntry",
+  "type": "object"
+}

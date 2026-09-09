@@ -1,0 +1,449 @@
+{
+  "$defs": {
+    "Analysis": {
+      "additionalProperties": false,
+      "description": "A complete, evidence-backed conclusion about an incident. Immutable.",
+      "properties": {
+        "claims": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Claim"
+          },
+          "title": "Claims",
+          "type": "array"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "hypotheses": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Hypothesis"
+          },
+          "title": "Hypotheses",
+          "type": "array"
+        },
+        "limitations": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Limitations"
+        },
+        "outcome": {
+          "$ref": "#/$defs/AnalysisOutcome"
+        },
+        "recommended_next_steps": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommended Next Steps",
+          "type": "array"
+        },
+        "root_cause": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Root Cause"
+        },
+        "summary": {
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome",
+        "summary",
+        "confidence"
+      ],
+      "title": "Analysis",
+      "type": "object"
+    },
+    "AnalysisOutcome": {
+      "description": "Whether the investigation reached a supported conclusion.\n\n`INCONCLUSIVE` is a first-class result, not a failure (invariant I8). An agent\nthat cannot support a conclusion from the evidence it gathered must say so.",
+      "enum": [
+        "completed",
+        "inconclusive"
+      ],
+      "title": "AnalysisOutcome",
+      "type": "string"
+    },
+    "Budget": {
+      "additionalProperties": false,
+      "description": "The declared ceiling for one investigation run. Immutable.",
+      "properties": {
+        "deadline_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Deadline Seconds",
+          "type": "number"
+        },
+        "max_tool_calls": {
+          "exclusiveMinimum": 0,
+          "title": "Max Tool Calls",
+          "type": "integer"
+        },
+        "max_total_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "max_turns": {
+          "exclusiveMinimum": 0,
+          "title": "Max Turns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_turns",
+        "max_tool_calls",
+        "max_total_tokens",
+        "deadline_seconds"
+      ],
+      "title": "Budget",
+      "type": "object"
+    },
+    "BudgetUsage": {
+      "additionalProperties": false,
+      "description": "What a run actually consumed. Immutable snapshot.",
+      "properties": {
+        "elapsed_seconds": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Elapsed Seconds",
+          "type": "number"
+        },
+        "input_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        },
+        "turns": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Turns",
+          "type": "integer"
+        }
+      },
+      "title": "BudgetUsage",
+      "type": "object"
+    },
+    "Claim": {
+      "additionalProperties": false,
+      "description": "A single assertion, with the evidence that supports it.\n\nThere is no way to express an uncited claim: `citations` is non-empty by\nschema. This is the structural half of invariant I1.",
+      "properties": {
+        "citations": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Citations",
+          "type": "array"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "citations"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "Confidence": {
+      "description": "How strongly the evidence supports the stated conclusion.",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "description": "One recorded fact. Immutable and self-attesting.",
+      "properties": {
+        "agent_id": {
+          "minLength": 1,
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "collected_at": {
+          "format": "date-time",
+          "title": "Collected At",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "content_type": {
+          "default": "application/json",
+          "title": "Content Type",
+          "type": "string"
+        },
+        "digest": {
+          "maxLength": 64,
+          "minLength": 64,
+          "title": "Digest",
+          "type": "string"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/EvidenceRequest"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/EvidenceSource"
+        },
+        "truncated": {
+          "default": false,
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "run_id",
+        "source",
+        "agent_id",
+        "request",
+        "content",
+        "collected_at",
+        "digest"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "EvidenceRequest": {
+      "additionalProperties": false,
+      "description": "Exactly what was asked of the tool, preserved verbatim.\n\n`reason` is required rather than optional. Forcing the caller to state why it\nis asking before it asks puts the intent in the audit trail and makes tool use\ngradeable by the Phase 4 evaluator - one schema field for a real\nexplainability signal.",
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Arguments",
+          "type": "object"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "tool_name": {
+          "minLength": 1,
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool_name",
+        "reason"
+      ],
+      "title": "EvidenceRequest",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "description": "Systems Causiq may collect evidence from.\n\nPhase 0 has exactly one. Phase 1 adds DBT, AIRFLOW, GIT, DEPLOYMENT and\nDATA_QUALITY as their tools land - deliberately not declared before then, so\nthe enum never describes a capability that does not exist.",
+      "enum": [
+        "warehouse"
+      ],
+      "title": "EvidenceSource",
+      "type": "string"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "description": "A candidate cause, with the evidence for and against it. Immutable.",
+      "properties": {
+        "hypothesis_id": {
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "refuting_evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Refuting Evidence",
+          "type": "array"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/HypothesisStatus",
+          "default": "proposed"
+        },
+        "supporting_evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "statement"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "HypothesisStatus": {
+      "description": "Where a candidate explanation stands against the evidence.",
+      "enum": [
+        "proposed",
+        "supported",
+        "refuted"
+      ],
+      "title": "HypothesisStatus",
+      "type": "string"
+    },
+    "JsonValue": {},
+    "RunState": {
+      "description": "Lifecycle of an investigation run.\n\nEvery run ends in one of `TERMINAL_RUN_STATES` (invariant I8) - including the\nunhappy ones, which are outcomes rather than exceptions.",
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "inconclusive",
+        "denied",
+        "budget_exceeded",
+        "failed"
+      ],
+      "title": "RunState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One bounded execution against one incident. Immutable.",
+  "properties": {
+    "agent_id": {
+      "minLength": 1,
+      "title": "Agent Id",
+      "type": "string"
+    },
+    "analysis": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Analysis"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "budget": {
+      "$ref": "#/$defs/Budget"
+    },
+    "ended_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ended At"
+    },
+    "evidence": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Evidence"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "failure_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure Reason"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/RunState"
+    },
+    "usage": {
+      "$ref": "#/$defs/BudgetUsage",
+      "default": {
+        "elapsed_seconds": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "tool_calls": 0,
+        "turns": 0
+      }
+    }
+  },
+  "required": [
+    "run_id",
+    "incident_id",
+    "agent_id",
+    "state",
+    "budget",
+    "started_at"
+  ],
+  "title": "InvestigationRun",
+  "type": "object"
+}

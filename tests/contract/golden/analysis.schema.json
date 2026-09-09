@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "AnalysisOutcome": {
+      "description": "Whether the investigation reached a supported conclusion.\n\n`INCONCLUSIVE` is a first-class result, not a failure (invariant I8). An agent\nthat cannot support a conclusion from the evidence it gathered must say so.",
+      "enum": [
+        "completed",
+        "inconclusive"
+      ],
+      "title": "AnalysisOutcome",
+      "type": "string"
+    },
+    "Claim": {
+      "additionalProperties": false,
+      "description": "A single assertion, with the evidence that supports it.\n\nThere is no way to express an uncited claim: `citations` is non-empty by\nschema. This is the structural half of invariant I1.",
+      "properties": {
+        "citations": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Citations",
+          "type": "array"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "citations"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "Confidence": {
+      "description": "How strongly the evidence supports the stated conclusion.",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "description": "A candidate cause, with the evidence for and against it. Immutable.",
+      "properties": {
+        "hypothesis_id": {
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "refuting_evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Refuting Evidence",
+          "type": "array"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/HypothesisStatus",
+          "default": "proposed"
+        },
+        "supporting_evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "statement"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "HypothesisStatus": {
+      "description": "Where a candidate explanation stands against the evidence.",
+      "enum": [
+        "proposed",
+        "supported",
+        "refuted"
+      ],
+      "title": "HypothesisStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A complete, evidence-backed conclusion about an incident. Immutable.",
+  "properties": {
+    "claims": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Claim"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "confidence": {
+      "$ref": "#/$defs/Confidence"
+    },
+    "hypotheses": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Hypothesis"
+      },
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "limitations": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Limitations"
+    },
+    "outcome": {
+      "$ref": "#/$defs/AnalysisOutcome"
+    },
+    "recommended_next_steps": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Recommended Next Steps",
+      "type": "array"
+    },
+    "root_cause": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Root Cause"
+    },
+    "summary": {
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    }
+  },
+  "required": [
+    "outcome",
+    "summary",
+    "confidence"
+  ],
+  "title": "Analysis",
+  "type": "object"
+}

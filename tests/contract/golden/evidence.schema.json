@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "EvidenceRequest": {
+      "additionalProperties": false,
+      "description": "Exactly what was asked of the tool, preserved verbatim.\n\n`reason` is required rather than optional. Forcing the caller to state why it\nis asking before it asks puts the intent in the audit trail and makes tool use\ngradeable by the Phase 4 evaluator - one schema field for a real\nexplainability signal.",
+      "properties": {
+        "arguments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Arguments",
+          "type": "object"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "tool_name": {
+          "minLength": 1,
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool_name",
+        "reason"
+      ],
+      "title": "EvidenceRequest",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "description": "Systems Causiq may collect evidence from.\n\nPhase 0 has exactly one. Phase 1 adds DBT, AIRFLOW, GIT, DEPLOYMENT and\nDATA_QUALITY as their tools land - deliberately not declared before then, so\nthe enum never describes a capability that does not exist.",
+      "enum": [
+        "warehouse"
+      ],
+      "title": "EvidenceSource",
+      "type": "string"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "One recorded fact. Immutable and self-attesting.",
+  "properties": {
+    "agent_id": {
+      "minLength": 1,
+      "title": "Agent Id",
+      "type": "string"
+    },
+    "collected_at": {
+      "format": "date-time",
+      "title": "Collected At",
+      "type": "string"
+    },
+    "content": {
+      "title": "Content",
+      "type": "string"
+    },
+    "content_type": {
+      "default": "application/json",
+      "title": "Content Type",
+      "type": "string"
+    },
+    "digest": {
+      "maxLength": 64,
+      "minLength": 64,
+      "title": "Digest",
+      "type": "string"
+    },
+    "evidence_id": {
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/EvidenceRequest"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/EvidenceSource"
+    },
+    "truncated": {
+      "default": false,
+      "title": "Truncated",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "run_id",
+    "source",
+    "agent_id",
+    "request",
+    "content",
+    "collected_at",
+    "digest"
+  ],
+  "title": "Evidence",
+  "type": "object"
+}
