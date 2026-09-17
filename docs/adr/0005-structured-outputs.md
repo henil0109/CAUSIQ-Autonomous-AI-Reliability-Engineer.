@@ -58,3 +58,14 @@ test asserts a real call returns a schema-valid parsed object.
 
 *"The prompt asks for citations. The schema requires them. The validator proves them. Three
 layers, because a prompt instruction alone is a request, not a guarantee."*
+
+## Amendment (2026-09-17, during P0.6)
+
+The delivered adapter (`llm/anthropic_client.py`) calls `client.messages.create(...)` with
+`output_config={"format": {"type": "json_schema", "schema": Analysis.model_json_schema()}}` and
+validates the returned text with `Analysis.model_validate_json(...)` directly, rather than
+`client.messages.parse(..., output_format=Analysis)` as sketched above. The two put an identical
+request on the wire; see ADR-0008 for why `create()` was chosen once a real adapter existed to
+check the alternative against. The property this ADR actually decided - that machine-consumed
+model output is schema-constrained end to end, not prose plus a parser - holds exactly as
+written.

@@ -1,9 +1,9 @@
 # Causiq — Engineering Contract
 
 **Project:** Causiq — Autonomous AI Reliability Engineer
-**Status:** v1.0 approved — Phase 0 in progress (P0.1–P0.5 complete)
+**Status:** v1.0 approved — Phase 0 in progress (P0.1–P0.6 complete)
 **Owner:** Henil Patel
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-17
 
 This document is the binding technical agreement for how Causiq is built. It defines the
 problem, the invariants, the architecture, the technology decisions and their rationale, and
@@ -238,20 +238,19 @@ causiq/
 │   │   ├── sql_policy.py          # P0.5: statement-shape validation (ADR-0007)
 │   │   └── warehouse.py           # P0.5: query_warehouse (read-only DuckDB)
 │   ├── llm/
-│   │   ├── ports.py               # ModelClient protocol
-│   │   ├── anthropic_client.py    # the real adapter (SDK, retries, usage capture)
-│   │   ├── fake_client.py         # scripted adapter for offline tests
-│   │   ├── context.py             # context assembly + cache-breakpoint placement
-│   │   └── prompts/               # versioned prompt text, loaded from files
+│   │   ├── ports.py               # P0.6: ModelClient protocol + turn/message vocabulary
+│   │   ├── anthropic_client.py    # P0.6: the real adapter - the only file importing `anthropic`
+│   │   ├── fake_client.py         # P0.6: scripted adapter for offline tests
+│   │   └── prompts/               # P0.6: versioned prompt text, loaded from files
 │   ├── agents/
-│   │   └── investigator.py        # P0: the single agent
+│   │   └── investigator.py        # P0.6: the bounded loop (turns → tool calls → citation check)
 │   ├── audit/
 │   │   └── journal.py             # append-only sink (JSONL → durable store in P7)
 │   ├── obs/
 │   │   ├── ports.py               # Tracer protocol + span-name constants
 │   │   └── noop.py                # P0 implementation
-│   ├── runner.py                  # orchestrates one InvestigationRun
-│   └── cli.py                     # operator surface
+│   ├── runner.py                  # P0.7 (not yet built): orchestrates one InvestigationRun via the CLI
+│   └── cli.py                     # P0.7 (not yet built): operator surface
 ├── fixtures/                      # the versioned world Causiq investigates
 │   ├── warehouse/seed.sql         # DuckDB schema + seeded rows, including the defect
 │   ├── incidents/INC-001.json
@@ -425,9 +424,11 @@ literal at a call site.
   `client.messages.stream(...)` with `get_final_message()`.
 - **No assistant prefill** — rejected with a 400 on Opus 5. Output shape is controlled with
   structured outputs.
-- **Structured output:** `client.messages.parse(..., output_format=<PydanticModel>)`, reading
-  `response.parsed_output`; raw `output_config={"format": {"type": "json_schema", ...}}` where a
-  Pydantic model is not the natural source.
+- **Structured output:** constrained via `output_config={"format": {"type": "json_schema",
+  "schema": Analysis.model_json_schema()}}`. The P0.6 adapter calls `client.messages.create(...)`
+  directly and validates the returned text with `Analysis.model_validate_json(...)` rather than
+  `client.messages.parse(..., output_format=Analysis)` - see ADR-0008 for why (the two are
+  wire-identical; `create()` gives one function that classifies every response shape, not two).
 - **Strict tools:** every tool definition carries `strict: True`, `additionalProperties: False`,
   and a complete `required` list, so tool arguments are schema-valid by construction.
 - **Tool inputs are always parsed as JSON**, never string-matched — escaping inside
@@ -449,6 +450,15 @@ it. Therefore:
 5. `usage.cache_read_input_tokens` is recorded on every call and asserted non-zero in the
    multi-turn integration test. A silent cache miss is a test failure, not a cost surprise.
 
+**P0.6 status:** 1-3 are built (the frozen system prompt in `llm/prompts/investigator_system.md`,
+the cache breakpoint in the request, and `ToolRegistry.schemas()`'s deterministic ordering from
+P0.4, sent unmodified). Item 4, the mid-run operator-instruction channel, does not exist yet -
+there is no operator in the loop to send one. Item 5 is only partly true: `ModelTurn` captures
+`input_tokens`/`output_tokens` on every call, but no P0.6 test asserts a live cache hit, since
+that requires the real API and a multi-turn exchange with a stable prefix, which the current live
+suite (deliberately narrow per §11 below) does not attempt. Both are candidates for whichever
+phase first needs a live, multi-turn, cost-sensitive run.
+
 **Review script:** *"Cache hit rate isn't a cost optimization we hope for — it's an invariant we
 assert. The system prompt is frozen by construction and the tool list is sorted, so the prefix
 is byte-identical across turns, and there's a test that fails if that stops being true."*
@@ -461,8 +471,8 @@ is byte-identical across turns, and there's a test that fails if that stops bein
 |---|---|
 | `end_turn` | Normal completion. |
 | `tool_use` | Execute **all** blocks; return **all** results in a single user message. Splitting results across messages degrades future parallel tool use. |
-| `max_tokens` | Recoverable. Recorded, budget re-checked, bounded retry with reduced scope. |
-| `pause_turn` | Re-send with the paused turn appended; capped restart count. |
+| `max_tokens` / `model_context_window_exceeded` | Terminal in P0.6 (`ModelContractError`, no retry - see ADR-0008). Recoverable-with-bounded-retry, as described here, is deferred to a later phase. |
+| `pause_turn` | Not reachable in P0.6 - the one tool offered (`query_warehouse`) is not a long-running server-side tool. Unhandled `stop_reason`s raise `ModelContractError`. |
 | `refusal` | Terminal. `stop_details.category` and `.explanation` recorded in the audit journal. |
 
 A failed tool returns a `tool_result` with `is_error: True` — never a dropped block, which would
@@ -476,6 +486,12 @@ Every model call passes through one gateway that enforces the per-run token budg
 `usage` (input, output, cache-read, cache-creation), and refuses the call when the budget is
 exhausted. Per-run cost is computed and stored on the run record.
 `client.messages.count_tokens` is used to estimate context size before large calls.
+
+**P0.6 status:** the turn/tool-call/token/deadline budget (`Budget`/`BudgetTracker`, P0.3) is
+enforced unchanged by the agent loop and is what makes every run bounded (I5); no new budget
+mechanism was introduced. A transient model error (rate limit, connection failure, 5xx) ends the
+run rather than retrying, and `client.messages.count_tokens` pre-flight estimation is not yet
+used - both are scope cuts recorded in ADR-0008, not gaps discovered by accident.
 
 ---
 

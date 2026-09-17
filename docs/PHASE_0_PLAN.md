@@ -1,9 +1,9 @@
 # Causiq — Phase 0 Foundation Plan
 
 **Phase:** P0 — Walking Skeleton
-**Status:** Approved — P0.1 through P0.5 complete; P0.6 not yet started
+**Status:** Approved — P0.1 through P0.6 complete; P0.7 not yet started
 **Depends on:** `ENGINEERING_CONTRACT.md` v1.0
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-17
 
 ---
 
@@ -202,45 +202,65 @@ records:     Evidence{ request: sql + reason, content: {sql, columns, rows, row_
   abandon-and-hope-for-the-best anymore — I can show you the test that proves a query which
   would run for tens of seconds is actually aborted in a fraction of one."*
 
-### P0.6 — Model client port and adapters
+### P0.6 — Model client port, the bounded agent, and citation enforcement — delivered
 
-**Deliverable:** `llm/ports.py` (`ModelClient` protocol), `llm/anthropic_client.py`,
-`llm/fake_client.py`, `llm/context.py`, `llm/prompts/investigator_system.md`.
+**Delivered:** `llm/ports.py` (`ModelClient` protocol and turn/message vocabulary),
+`llm/anthropic_client.py`, `llm/fake_client.py`, `llm/prompts/investigator_system.md`,
+`agents/investigator.py` (the bounded loop).
+
+This phase widened beyond the plan's original P0.6/P0.7 split: rather than landing the model
+client port alone and deferring the agent loop, P0.6 delivered the port **and** a real bounded
+investigator that drives it end to end through the existing P0.4 tool boundary, because a
+`ModelClient` with nothing to exercise it end to end is unreviewable in isolation. `runner.py` and
+`cli.py` — the operator-facing CLI surface — remain P0.7; `audit/journal.py` and `obs/` already
+existed from P0.4 and needed no changes.
 
 The Anthropic adapter is the only file in the repo that imports `anthropic`. It owns: client
-construction and timeouts, the model/effort/thinking parameters from contract §6.2, cache
-breakpoint placement per §6.3, the typed-exception chain per §8, usage and `_request_id` capture,
-and the per-run token budget check.
+construction, the model/effort/thinking parameters from contract §6.2, cache breakpoint placement
+per §6.3, the typed-exception chain per §8, and usage capture. It calls `messages.create(...)`
+directly rather than `messages.parse(...)`, and does not retry a transient failure — both are
+deliberate P0.6 decisions with a real-SDK basis, recorded in **ADR-0008**, not silent narrowings
+of the contract.
+
+The agent (`Investigator.investigate()`) runs a bounded turn loop against the *existing*
+`Budget`/`BudgetTracker` (P0.3) and the *existing* `ToolRegistry` → `ToolExecutor` → `AuthZ` →
+`EvidenceLedger` chain (P0.4/P0.5) — no new execution path, no direct DuckDB or ledger access from
+the agent. Every tool call the model requests becomes the same `ToolRequest` P0.4 already defined.
+The loop ends by calling the *existing* `validate_citations()` (P0.3); a fabricated citation is
+rejected there, not by anything new in P0.6.
 
 - **Why the fake adapter is not a shortcut:** the SDK's 1.x transport is `httpx2`-based, so
   transport-level HTTP mocking is awkward and brittle. Testing at the port is both easier and
-  more meaningful: the fake replays scripted responses covering every `stop_reason` and every
-  block shape, which is what the loop actually has to handle.
-- **How we test it:** offline — the loop under every `stop_reason`, parallel multi-block tool
-  use, budget exhaustion mid-run, transient-error retry and give-up. Live (skipped without a key)
-  — one real call asserting a schema-valid parsed output, and a two-turn call asserting
-  `usage.cache_read_input_tokens > 0`.
+  more meaningful: `FakeModelClient` replays a deterministic script — including callables that
+  read real, ledger-generated evidence ids back out of the conversation history, so no test ever
+  hardcodes an id like `ev_001`.
+- **How we test it:** offline — the full INC-001 investigation against a real DuckDB file and the
+  real P0.4/P0.5 stack with only the model faked; every negative case named in the Engineering
+  Contract (fabricated citation, unauthorized tool, tool failure, tool timeout, turn-budget
+  exhaustion, tool-call-budget exhaustion, malformed model response). Live (skipped without
+  `ANTHROPIC_API_KEY`, never required for `make test`) — two narrow tests asserting the adapter's
+  own contract: a structured final analysis, and a requested tool call.
 - **Review script:** *"One file talks to Anthropic. Everything else talks to a protocol. That's
   why the suite runs offline, and it's also the seam that makes a Bedrock or Vertex client a
-  configuration change in Phase 7 rather than a rewrite."*
+  configuration change in Phase 7 rather than a rewrite. And the agent never touches DuckDB or the
+  ledger directly — I can show you that `QueryWarehouseTool.run` doesn't even accept a ledger
+  argument, so there's no code path for the agent to fabricate evidence through."*
 
-### P0.7 — The investigator agent, the runner, and the audit journal
+### P0.7 — The CLI runner
 
-**Deliverable:** `agents/investigator.py`, `runner.py`, `audit/journal.py`, `obs/ports.py` +
-`obs/noop.py`, `cli.py`.
+**Remaining deliverable:** `runner.py`, `cli.py`. `audit/journal.py` and `obs/ports.py` +
+`obs/noop.py` already exist (P0.4) and are reused unchanged by `Investigator.investigate()`.
 
-- The agent runs the bounded turn loop from contract §4.2, then makes one structured-output call
-  producing `Analysis` via `client.messages.parse(output_format=Analysis)`.
-- The runner opens the run, enforces the budget, invokes the agent, runs `validate_citations()`,
-  writes the terminal state, and flushes the audit journal.
-- The journal is append-only JSONL, one file per run, written *before* and *after* each side
-  effect so a crashed process still yields a reconstructable trail.
-- CLI: `causiq investigate INC-001 [--dry-run] [--json]`.
+- The runner opens the run, enforces the budget, invokes the agent, and surfaces the terminal
+  state and analysis for the CLI to render — `Investigator.investigate()` already does the
+  budget/citation/audit work described in the original plan for this phase; the runner's job is
+  narrower than first scoped.
+- CLI: `causiq investigate INC-001 [--dry-run] [--json]`, where `--dry-run` selects
+  `FakeModelClient` and a real run selects `AnthropicModelClient.from_settings(...)`.
 
-- **How we test it:** an end-to-end offline test with the fake client asserting a `COMPLETED` run
-  with resolvable citations; a fabricated-citation test asserting the run is **rejected**; a
-  budget-exhaustion test asserting a clean `BUDGET_EXCEEDED` terminal state; a journal test
-  asserting byte-identical output across two runs with the frozen clock.
+- **How we test it:** an end-to-end CLI test asserting `--dry-run` produces a `COMPLETED` run with
+  zero network calls; a journal test asserting byte-identical output across two runs with the
+  frozen clock.
 - **Review script:** *"`--dry-run` executes the entire pipeline against the fake client with no
   API spend. That's the demo I can run anywhere, including offline, and it exercises exactly the
   same code path as a live run."*

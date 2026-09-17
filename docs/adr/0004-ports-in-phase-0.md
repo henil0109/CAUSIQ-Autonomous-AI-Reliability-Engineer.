@@ -63,6 +63,14 @@ declared earlier, because typing its signature honestly requires the SDK types, 
 `anthropic` dependency in before anything calls the model would violate the dependency policy in
 Engineering Contract 5.1.
 
+## Amendment (2026-09-17, during P0.6)
+
+`ModelClient` is delivered: `llm/ports.py` (the protocol and its vocabulary), `llm/fake_client.py`
+(the scripted test double), and `llm/anthropic_client.py` (the sole module in the repository that
+imports `anthropic`). All five ports predicted in this ADR now have both implementations. See
+ADR-0008 for the two design questions the real adapter raised that this ADR did not anticipate
+(retry behaviour, and the exact Messages API call shape).
+
 ## How we test it
 
 Each port has a conformance test that both implementations must pass. `FrozenClock` determinism is

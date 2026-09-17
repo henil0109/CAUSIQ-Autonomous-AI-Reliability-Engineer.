@@ -5,10 +5,17 @@ from authorized systems, correlates it on a shared incident timeline, and produc
 analysis in which **every claim resolves to a specific recorded piece of evidence**. Remediation
 is proposed, never executed without human approval, and verified afterwards.
 
-**Status:** Phase 0 in progress. P0.1 (foundation) through P0.5 (evidence substrate and the
-real, read-only `query_warehouse` tool) are complete and `hardened` — the capability layer,
-authorization, evidence, and audit all work end to end against a real DuckDB warehouse. The
-agent loop and the Anthropic adapter arrive in P0.6-P0.7.
+**Status:** Phase 0 in progress. P0.1 (foundation) through P0.6 (the model client port, the
+Anthropic adapter, and a bounded investigator agent) are complete and `hardened` — a real agent
+now drives the P0.4/P0.5 capability layer end to end, offline and deterministically by default,
+producing a schema-validated, citation-checked analysis. Nothing in P0.6 is `production-ready`;
+see `docs/PHASE_0_PLAN.md`. The CLI operator surface (`causiq investigate ...`) arrives in P0.7.
+
+Running a real investigation requires `ANTHROPIC_API_KEY` in the environment — Causiq never
+reads credentials from a Claude web session, a CLI profile, or anywhere else. The full offline
+test suite (`make test`) needs no key and makes no network calls; a small opt-in live suite
+(`make test-live`) exercises the real Anthropic adapter and is skipped automatically without a
+key.
 
 ## Getting started
 
