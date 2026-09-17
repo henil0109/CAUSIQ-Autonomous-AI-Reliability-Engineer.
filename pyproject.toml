@@ -9,6 +9,7 @@ license = { text = "Proprietary" }
 # Dependency policy (Engineering Contract 5.1, ADR-0002): every dependency must
 # name the requirement it serves. Nothing is added before the phase that uses it.
 dependencies = [
+    "duckdb>=1.5.5",          # the evidence substrate + query_warehouse (ADR-0003, ADR-0007)
     "pydantic>=2.9",          # domain validation + JSON Schema generation (ADR-0005)
     "pydantic-settings>=2.5", # environment-driven config, validated at startup
     "structlog>=24.4",        # structured JSON logging with correlation ids
@@ -16,7 +17,6 @@ dependencies = [
 
 # Deliberately NOT yet declared - each arrives with the phase that needs it:
 #   anthropic  -> P0.6 (ModelClient adapter, ADR-0001)
-#   duckdb     -> P0.5 (evidence substrate, ADR-0003)
 #   typer      -> P0.7 (CLI delivery surface)
 #   opentelemetry-sdk, langfuse -> P3 (ADR-0004 fixes the seam now, not the exporter)
 

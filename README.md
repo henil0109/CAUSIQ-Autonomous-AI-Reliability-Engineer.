@@ -5,9 +5,10 @@ from authorized systems, correlates it on a shared incident timeline, and produc
 analysis in which **every claim resolves to a specific recorded piece of evidence**. Remediation
 is proposed, never executed without human approval, and verified afterwards.
 
-**Status:** Phase 0 in progress. P0.1 (foundation), P0.2 (config / logging / errors / ports)
-and P0.3 (domain model + evidence ledger) are complete and `hardened`. The agent loop, the
-`query_warehouse` tool, and the Anthropic adapter arrive in P0.4-P0.7.
+**Status:** Phase 0 in progress. P0.1 (foundation) through P0.5 (evidence substrate and the
+real, read-only `query_warehouse` tool) are complete and `hardened` — the capability layer,
+authorization, evidence, and audit all work end to end against a real DuckDB warehouse. The
+agent loop and the Anthropic adapter arrive in P0.6-P0.7.
 
 ## Getting started
 
@@ -32,7 +33,7 @@ Then run the gate. It is offline and deterministic: **no API key, no network**.
 commands. Both use `uv run --no-sync`, because the working copy lives in a OneDrive-synced folder
 where uv's reinstall step intermittently hits a locked directory.
 
-Expected result: **178 passed**, 100% coverage, mypy and ruff clean.
+Expected result: **346 passed**, 100% coverage, mypy and ruff clean.
 
 ## Documents
 
@@ -40,7 +41,7 @@ Expected result: **178 passed**, 100% coverage, mypy and ruff clean.
 |---|---|
 | [docs/ENGINEERING_CONTRACT.md](docs/ENGINEERING_CONTRACT.md) | The binding technical agreement: invariants, architecture, technology decisions, Claude usage contract, security model, testing contract, definition of done, and the 28-requirement traceability matrix |
 | [docs/PHASE_0_PLAN.md](docs/PHASE_0_PLAN.md) | The first vertical slice: the seeded incident, work breakdown, 19 acceptance criteria, and the explicit list of what is *not* being built yet |
-| [docs/adr/](docs/adr/) | Architecture Decision Records 0001–0006 |
+| [docs/adr/](docs/adr/) | Architecture Decision Records 0001–0007 |
 
 ## Core invariants
 

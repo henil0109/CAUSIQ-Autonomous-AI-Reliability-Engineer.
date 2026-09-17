@@ -1,7 +1,7 @@
 # Causiq — Phase 0 Foundation Plan
 
 **Phase:** P0 — Walking Skeleton
-**Status:** Approved — P0.1, P0.2 and P0.3 complete; P0.4 awaiting approval
+**Status:** Approved — P0.1 through P0.5 complete; P0.6 not yet started
 **Depends on:** `ENGINEERING_CONTRACT.md` v1.0
 **Last updated:** 2026-09-09
 
@@ -148,12 +148,15 @@ emission), `tools/authz.py` (`AgentIdentity`, `Permission`, authorization decisi
   test — including for a write tool that doesn't exist yet, because the gate is what matters, not
   the tool."*
 
-### P0.5 — Evidence substrate and the `query_warehouse` tool
+### P0.5 — Evidence substrate and the `query_warehouse` tool — delivered
 
-**Deliverable:** `fixtures/warehouse/seed.sql`, `scripts/seed_warehouse.py`,
-`fixtures/incidents/INC-001.json`, `tools/warehouse.py`.
+**Delivered:** `fixtures/warehouse/seed.sql`, `fixtures/incidents/INC-001.json`,
+`src/causiq/evidence_substrate.py` (the fixture builder and incident loader — kept out of
+`tools/` since it writes, and the query tool must never share a module with anything that does),
+`scripts/seed_warehouse.py` (thin CLI wrapper), `src/causiq/tools/sql_policy.py` (statement-shape
+validation), `src/causiq/tools/warehouse.py` (the tool).
 
-Tool contract:
+Tool contract, as built:
 
 ```
 name:        query_warehouse
@@ -161,20 +164,43 @@ permission:  warehouse.read
 mutating:    False
 risk:        low
 input:       { sql: string, reason: string }     strict, additionalProperties: false
-guards:      read-only connection · SELECT/WITH allowlist · row cap
-             · result-byte cap · statement timeout
-records:     Evidence{ request: sql + reason, content: result rows, digest, provenance }
+defaults:    max_rows=500 · max_result_bytes=256_000
+             query_timeout_seconds=5.0 (DuckDB interrupt() — genuine cancellation)
+             outer_timeout_seconds=10.0 (executor's abandon-only backstop; P0.4's
+             known limitation, still present, now a last resort rather than the
+             primary mechanism)
+guards:      three independent layers — see ADR-0007 for the full empirical basis:
+               1. statement-shape validation (exactly one statement, DuckDB
+                  classifies it StatementType.SELECT, and the caller's own text
+                  begins with the literal keyword SELECT or WITH — closing a
+                  documented gap where PRAGMA/SHOW/DESCRIBE/SUMMARIZE all
+                  classify as SELECT)
+               2. a fresh connection per query: read-only + external access
+                  disabled + configuration locked, at the DuckDB engine itself
+               3. bounded execution: incremental row cap (proven to bound engine
+                  work, not just truncate a full result), result-byte cap, and a
+                  timer-driven interrupt() timeout
+records:     Evidence{ request: sql + reason, content: {sql, columns, rows, row_count,
+             truncated}, digest, provenance }
 ```
 
 - **Why `reason` is a required argument:** it forces the model to state *why* it is asking before
   it asks, which lands in the audit trail and becomes directly gradeable by the Phase 4 tool-use
   evaluator. It costs one schema field and buys an explainability signal.
-- **How we test it:** allowlist rejection of `INSERT` / `UPDATE` / `DELETE` / `ATTACH` / `COPY`;
-  row and byte caps enforced; timeout enforced; deterministic seed verified by digest; the
-  four expected investigation queries return the expected shapes.
+- **How we test it:** `tests/unit/test_sql_policy.py` (55 tests — every required rejection
+  category, parsing edge cases, a named regression test for the PRAGMA gap found during
+  implementation), `tests/unit/test_warehouse_tool.py` (limits, a *timed* proof that a slow
+  query is genuinely cancelled rather than abandoned, full executor integration, and a
+  structural proof that `Tool.run`'s signature has no ledger/journal parameter — direct
+  invocation cannot produce evidence), `tests/unit/test_evidence_substrate.py` (fixture
+  determinism via digest comparison across two independent builds), and
+  `tests/integration/test_inc001_investigation.py` — the incident's root cause derived entirely
+  from real query results, never from a hardcoded string.
 - **Review script:** *"The tool is narrow on purpose. It is read-only at the connection level,
   not just by convention, and the query text is recorded verbatim — so any claim in the analysis
-  can be re-executed by hand against the same database."*
+  can be re-executed by hand against the same database. And the timeout isn't P0.4's
+  abandon-and-hope-for-the-best anymore — I can show you the test that proves a query which
+  would run for tens of seconds is actually aborted in a fraction of one."*
 
 ### P0.6 — Model client port and adapters
 

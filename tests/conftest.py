@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -33,6 +34,7 @@ from causiq.domain import (
     Severity,
 )
 from causiq.evidence import EvidenceLedger
+from causiq.evidence_substrate import DEFAULT_SEED_SQL_PATH, build_warehouse_db
 from causiq.ids import ApprovalId, IncidentId, RunId
 
 #: Fixed origin for every deterministic test artifact.
@@ -167,6 +169,22 @@ def journal(clock: FrozenClock) -> tuple[AuditJournal, InMemoryAuditSink]:
     """A journal writing to an inspectable in-memory sink."""
     sink = InMemoryAuditSink()
     return AuditJournal(RUN_ID, clock, sink), sink
+
+
+@pytest.fixture(scope="session")
+def warehouse_db_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A real INC-001 warehouse, built once for the whole test session.
+
+    Session-scoped deliberately: building it is a real (if cheap) DuckDB
+    operation, and it is never written to again after this fixture returns -
+    every consumer opens it read-only, so sharing one file across tests is
+    safe and keeps the suite fast. Individual tests that need an *empty* or
+    *differently shaped* database build their own in a function-scoped
+    tmp_path instead of using this fixture.
+    """
+    path = tmp_path_factory.mktemp("warehouse") / "inc001.duckdb"
+    build_warehouse_db(path, seed_sql_path=DEFAULT_SEED_SQL_PATH)
+    return path
 
 
 def make_analysis(*, citations: tuple[str, ...]) -> Analysis:

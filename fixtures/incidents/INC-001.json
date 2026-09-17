@@ -1,0 +1,9 @@
+{
+  "incident_id": "inc_INC-001",
+  "title": "revenue_daily total revenue dropped 82% on 2026-09-07",
+  "description": "analytics.revenue_daily reports total_revenue_usd of $331.65 for 2026-09-07, down from a stable $1851.00/day over the prior two weeks - an 82% decline. Upstream raw.orders shows no drop in total order volume or gross order value on that date, and no pipeline task failed. The decline is confined to orders classified as status = 'COMPLETED'.",
+  "severity": "high",
+  "detected_at": "2026-09-08T06:00:00+00:00",
+  "detected_by": "dq_monitor",
+  "affected_assets": ["analytics.revenue_daily", "raw.orders"]
+}

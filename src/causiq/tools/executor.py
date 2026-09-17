@@ -31,12 +31,20 @@ model reads and adapts to, because that adaptation is the entire point of an
 investigating agent. Only `BudgetExceededError` propagates, because exhausting the
 budget must stop the run rather than inform the model (invariant I5).
 
-Known limitation, stated plainly: the timeout uses a worker thread and
-`Future.result(timeout=...)`. Python cannot forcibly kill a thread, so a tool that
-ignores its deadline is *abandoned*, not cancelled - the executor stops waiting
-and returns a TIMEOUT result while the thread runs on. Real cancellation has to
-come from the tool's own client (in P0.5, DuckDB's statement timeout). The
-executor's timeout bounds how long a run waits, not how long a query runs.
+Known limitation, stated plainly: the *outer* bound in `_call_with_timeout` uses
+a worker thread and `Future.result(timeout=...)`. Python cannot forcibly kill a
+thread, so a tool that ignores this deadline is *abandoned*, not cancelled - the
+executor stops waiting and returns a TIMEOUT result while the thread runs on.
+This remains the only guarantee for a tool that does not manage its own
+cancellation.
+
+A tool that *can* cancel itself close to its own execution layer - `causiq.
+tools.warehouse`, via DuckDB's `interrupt()`, from P0.5 onward - raises
+`causiq.errors.ToolTimeoutError` when its own, tighter deadline fires. The
+executor treats that identically to the outer abandonment for the purpose of
+the result (same `ToolResultStatus.TIMEOUT`, same "no evidence" rule), but the
+audit detail records which mechanism actually fired, because "abandoned" and
+"cancelled" are different guarantees and the journal should not blur them.
 """
 
 from __future__ import annotations
@@ -61,6 +69,7 @@ from causiq.clock import Clock
 from causiq.domain import AuditEventType, BudgetTracker, EvidenceRequest
 from causiq.errors import (
     ToolInputValidationError,
+    ToolTimeoutError,
     UnknownToolError,
 )
 from causiq.evidence import EvidenceLedger
@@ -298,6 +307,9 @@ class ToolExecutor:
             try:
                 output = self._call_with_timeout(tool, payload)
             except FutureTimeoutError:
+                # The outer, last-resort bound: the tool did not return at all
+                # within tool.spec.timeout_seconds, so it is abandoned - not
+                # cancelled. See the module docstring's "known limitation".
                 return self._reject(
                     request,
                     status=ToolResultStatus.TIMEOUT,
@@ -309,7 +321,20 @@ class ToolExecutor:
                     detail={
                         "timeout_seconds": tool.spec.timeout_seconds,
                         "outcome": "timeout",
+                        "mechanism": "abandoned",
                     },
+                )
+            except ToolTimeoutError as exc:
+                # The tool cancelled itself closer to its own execution layer
+                # (e.g. DuckDB's interrupt()) and reported it precisely. Same
+                # result shape as the outer timeout; the audit detail records
+                # that this was a real cancellation, not an abandonment.
+                return self._reject(
+                    request,
+                    status=ToolResultStatus.TIMEOUT,
+                    event=AuditEventType.TOOL_FAILED,
+                    content=f"{tool.spec.name!r} timed out: {exc.message}",
+                    detail={**exc.context, "outcome": "timeout", "mechanism": "cancelled"},
                 )
             except Exception as exc:
                 return self._reject(

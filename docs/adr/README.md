@@ -12,6 +12,7 @@ in code.
 | [0004](0004-ports-in-phase-0.md) | Define model, tracing, audit and clock ports in Phase 0 | Accepted |
 | [0005](0005-structured-outputs.md) | Structured outputs and strict tools for machine-consumed output | Accepted |
 | [0006](0006-dual-repository-git-strategy.md) | Two independent repositories with independent commit history | Accepted |
+| [0007](0007-sql-read-only-defense-in-depth.md) | Defense in depth for read-only SQL execution (`query_warehouse`) | Accepted |
 
 ## Format
 

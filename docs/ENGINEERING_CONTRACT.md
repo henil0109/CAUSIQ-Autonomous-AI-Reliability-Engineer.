@@ -1,7 +1,7 @@
 # Causiq — Engineering Contract
 
 **Project:** Causiq — Autonomous AI Reliability Engineer
-**Status:** v1.0 approved — Phase 0 in progress (P0.1–P0.3 complete)
+**Status:** v1.0 approved — Phase 0 in progress (P0.1–P0.5 complete)
 **Owner:** Henil Patel
 **Last updated:** 2026-09-09
 
@@ -230,10 +230,12 @@ causiq/
 │   ├── authz/                     # identity and authorization (invariant I4)
 │   │   ├── models.py              # AgentIdentity, Permission, ApprovalToken
 │   │   └── decision.py            # authorize() - the single gate
-│   ├── tools/                     # [P0.4] not yet implemented
+│   ├── evidence_substrate.py      # P0.5: build the DuckDB fixture; load incident fixtures
+│   ├── tools/
 │   │   ├── base.py                # Tool protocol: name, description, schema, permission
 │   │   ├── registry.py            # deterministic ordering (prompt-cache stability)
 │   │   ├── executor.py            # authorize → validate → execute → record → audit
+│   │   ├── sql_policy.py          # P0.5: statement-shape validation (ADR-0007)
 │   │   └── warehouse.py           # P0.5: query_warehouse (read-only DuckDB)
 │   ├── llm/
 │   │   ├── ports.py               # ModelClient protocol
@@ -505,9 +507,17 @@ Each tool declares `name`, `permission` (the capability required to invoke it), 
 
 ### 7.3 Data-access safety
 
-The Phase 0 warehouse tool enforces a read-only connection, a statement allowlist (`SELECT` /
-`WITH` only), a row cap, a result-size cap, and a query timeout. Query text is recorded verbatim
-in the evidence record.
+`query_warehouse` (P0.5) enforces three independent layers, none relied on alone: statement-shape
+validation against DuckDB's own parser (exactly one statement, classified as `SELECT`, and —
+closing a gap the parser's own classification does not — beginning with the literal keyword
+`SELECT` or `WITH`); a connection opened read-only with external file/extension access disabled
+at the engine; and bounded execution — a row cap enforced via incremental fetch (not post-hoc
+truncation), a result-byte cap, and a timeout backed by DuckDB's own query cancellation
+(`interrupt()`), which is a tested, genuine abort rather than the abandon-only fallback described
+in §8's error taxonomy. Query text is recorded verbatim in the evidence record. Every claim above
+was verified empirically against DuckDB 1.5.5, including two gaps found and closed during
+implementation — see ADR-0007 for the full basis, the alternatives rejected, and the precise
+limitations.
 
 ### 7.4 Prompt-injection posture
 
