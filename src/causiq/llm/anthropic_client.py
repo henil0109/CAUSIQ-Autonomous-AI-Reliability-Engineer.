@@ -7,10 +7,13 @@ default suite - see the `live`-marked tests in
 `tests/integration/test_anthropic_live.py`, skipped unless `ANTHROPIC_API_KEY`
 is set. Every field name and parameter shape used below (`output_config`,
 `thinking`, the exact `StopReason` values, `ToolUseBlock.id`/`.name`/`.input`,
-`Usage.input_tokens`/`.output_tokens`) was checked directly against the
-installed `anthropic` 1.6.0 package before this file was written, not recalled
-from memory - guessing SDK shapes is exactly the failure mode Engineering
-Contract 6 exists to prevent.
+`Usage.input_tokens`/`.output_tokens`/`.cache_read_input_tokens`/
+`.cache_creation_input_tokens`) was checked directly against the installed
+`anthropic` 1.6.0 package before this file was written, not recalled from
+memory - guessing SDK shapes is exactly the failure mode Engineering Contract 6
+exists to prevent. The two cache fields are `Optional[int]` on the real type
+(`None` whenever a call has nothing cache-related to report), so this adapter
+normalizes them to `0` before they reach the provider-neutral `ModelTurn`.
 
 This is the *only* module in the project that imports `anthropic`. Every other
 module - the agent, the domain model, every test that is not specifically
@@ -145,6 +148,12 @@ def _parse_response(response: Any) -> ModelTurn:
     usage = response.usage
     input_tokens = usage.input_tokens
     output_tokens = usage.output_tokens
+    # Both are `Optional[int]` on the real `Usage` type - `None` whenever this
+    # particular call had nothing to report (no cache breakpoint hit yet, or
+    # caching not applicable), never a sentinel this adapter should propagate
+    # as-is into a `ModelTurn` field that is `int, ge=0`.
+    cache_read_input_tokens = usage.cache_read_input_tokens or 0
+    cache_creation_input_tokens = usage.cache_creation_input_tokens or 0
     stop_reason = response.stop_reason
 
     if stop_reason == "refusal":
@@ -163,7 +172,13 @@ def _parse_response(response: Any) -> ModelTurn:
         if not calls:
             msg = "stop_reason was tool_use but the response contained no tool_use block"
             raise ModelContractError(msg, stop_reason=stop_reason)
-        return ModelTurn(tool_calls=calls, input_tokens=input_tokens, output_tokens=output_tokens)
+        return ModelTurn(
+            tool_calls=calls,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cache_read_input_tokens=cache_read_input_tokens,
+            cache_creation_input_tokens=cache_creation_input_tokens,
+        )
 
     if stop_reason == "end_turn":
         text_blocks = [block.text for block in response.content if block.type == "text"]
@@ -177,7 +192,13 @@ def _parse_response(response: Any) -> ModelTurn:
             raise ModelContractError(
                 msg, stop_reason=stop_reason, parse_error=f"{type(exc).__name__}: {exc}"
             ) from exc
-        return ModelTurn(analysis=analysis, input_tokens=input_tokens, output_tokens=output_tokens)
+        return ModelTurn(
+            analysis=analysis,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cache_read_input_tokens=cache_read_input_tokens,
+            cache_creation_input_tokens=cache_creation_input_tokens,
+        )
 
     if stop_reason in _INCOMPLETE_STOP_REASONS:
         msg = f"the model's response was incomplete ({stop_reason})"

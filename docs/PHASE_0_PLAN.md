@@ -1,7 +1,7 @@
 # Causiq — Phase 0 Foundation Plan
 
 **Phase:** P0 — Walking Skeleton
-**Status:** Approved — P0.1 through P0.6 complete; P0.7 not yet started
+**Status:** Approved — P0.1 through P0.7 complete
 **Depends on:** `ENGINEERING_CONTRACT.md` v1.0
 **Last updated:** 2026-09-17
 
@@ -246,24 +246,50 @@ rejected there, not by anything new in P0.6.
   ledger directly — I can show you that `QueryWarehouseTool.run` doesn't even accept a ledger
   argument, so there's no code path for the agent to fabricate evidence through."*
 
-### P0.7 — The CLI runner
+### P0.7 — The CLI runner, run/audit persistence, and the remaining acceptance gaps — delivered
 
-**Remaining deliverable:** `runner.py`, `cli.py`. `audit/journal.py` and `obs/ports.py` +
-`obs/noop.py` already exist (P0.4) and are reused unchanged by `Investigator.investigate()`.
+**Delivered:** `runner.py`, `cli.py`, `docs/architecture/{execution-flow,data-flow}.md`, a
+`[project.scripts]` entry point (`causiq`), a `runs_dir` setting alongside the existing
+`audit_dir`, and the two `ModelTurn` cache-usage fields described below. `audit/journal.py` and
+`obs/ports.py` + `obs/noop.py` already existed (P0.4) and are reused unchanged by
+`Investigator.investigate()`.
 
-- The runner opens the run, enforces the budget, invokes the agent, and surfaces the terminal
-  state and analysis for the CLI to render — `Investigator.investigate()` already does the
-  budget/citation/audit work described in the original plan for this phase; the runner's job is
-  narrower than first scoped.
-- CLI: `causiq investigate INC-001 [--dry-run] [--json]`, where `--dry-run` selects
-  `FakeModelClient` and a real run selects `AnthropicModelClient.from_settings(...)`.
+- `causiq.runner.run_investigation()` is the whole orchestration: pick a `ModelClient`
+  (`FakeModelClient` for `--dry-run`, `AnthropicModelClient.from_settings(...)` otherwise), build
+  the real `ToolRegistry`/`QueryWarehouseTool` (auto-building the DuckDB file on first use via the
+  same `evidence_substrate.build_warehouse_db` the seed script already used), construct the
+  existing `Investigator` with `Settings.default_budget()`, run it with a `JsonlAuditSink`, and
+  persist the terminal `InvestigationRun` — evidence included — to `{runs_dir}/{run_id}.json`.
+  `Investigator.investigate()` itself needed no change at all.
+- CLI: `causiq investigate <incident-id> [--dry-run] [--json]`, argparse rather than a third-party
+  framework (one subcommand, two flags did not clear the dependency-policy bar for adding one). A
+  three-tier exit code (`0` completed, `1` any other terminal state, `2` a usage/configuration
+  error before any run started) makes the result scriptable without collapsing `INCONCLUSIVE`,
+  `BUDGET_EXCEEDED`, and `FAILED` into an undifferentiated nonzero code's opposite - a "did it
+  reach a confirmed root cause" question.
+- **AC-9's persistence, precisely:** `InvestigationRun` (P0.3) already carried the run's full
+  evidence (`ledger.snapshot()`, unchanged since P0.6), so "persist a partial ledger" needed no new
+  domain model - only somewhere to write the record that already existed. See `causiq.runner`'s
+  module docstring for the exact two files written per run and the one honestly-stated limitation
+  (the single-file result write is not itself crash-atomic; the audit journal, flushed
+  incrementally throughout the run, is what actually survives a mid-run crash).
+- **Cache usage (AC-16):** `ModelTurn` gained `cache_read_input_tokens`/`cache_creation_input_tokens`
+  (additive, default `0`), threaded from the real `Usage.cache_read_input_tokens`/
+  `.cache_creation_input_tokens` (both `Optional[int]` on the real SDK type, normalized to `0`).
+  A live, opt-in test performs a two-call exchange sharing an identical, deliberately-padded
+  system+tools prefix and asserts the second call's `cache_read_input_tokens > 0`.
 
-- **How we test it:** an end-to-end CLI test asserting `--dry-run` produces a `COMPLETED` run with
-  zero network calls; a journal test asserting byte-identical output across two runs with the
-  frozen clock.
-- **Review script:** *"`--dry-run` executes the entire pipeline against the fake client with no
-  API spend. That's the demo I can run anywhere, including offline, and it exercises exactly the
-  same code path as a live run."*
+- **How we test it:** offline - CLI argument parsing, `--dry-run` success in both output modes, an
+  unknown incident, a live invocation with no key, a budget-exceeded run's exit code and persisted
+  partial evidence, and a dedicated no-network proof for the whole CLI/runner path (not just the
+  P0.1-P0.3 pieces the older offline-guarantee test covered). A new integration test
+  (`test_real_agent_determinism.py`) proves AC-10 against the *actual* `Investigator`, closing the
+  gap the original hand-simulated determinism test left open. Live (skipped without a key): the
+  two-call cache-hit assertion above.
+- **Review script:** *"`--dry-run` executes the entire pipeline - real agent, real tool executor,
+  real DuckDB - against the fake client with no API spend. That's the demo I can run anywhere,
+  including offline, and it exercises exactly the same code path as a live run, down to where the
+  result gets written."*
 
 ---
 
@@ -275,16 +301,21 @@ Phase 0 is complete when **every** item below passes. These are checks, not aspi
 
 - **AC-1** `causiq investigate INC-001` completes against the live API and produces an `Analysis`
   whose `outcome` is `COMPLETED` and whose stated root cause identifies the unhandled
-  `PENDING_CAPTURE` status as the reason for the revenue drop.
+  `PENDING_CAPTURE` status as the reason for the revenue drop. **P0.7 delivered the mechanism**
+  (the command runs live once `ANTHROPIC_API_KEY` is set); the live run itself has not yet been
+  executed in this environment (no key available) - an operational step, not a remaining code gap.
 - **AC-2** The analysis cites at least two distinct evidence records, and **every** cited id
-  resolves in that run's ledger.
+  resolves in that run's ledger. Proven offline (`--dry-run`, 3 evidence records); the live half
+  shares AC-1's operational caveat.
 - **AC-3** Each evidence record contains the verbatim SQL, the stated reason, the result content,
   a content digest, the acting `agent_id`, and a timestamp.
 - **AC-4** The run writes an append-only audit journal from which the full sequence — every model
   call, every authorization decision, every tool execution, the final validation — can be
   reconstructed without reading application logs.
 - **AC-5** `causiq investigate INC-001 --dry-run` produces the same terminal state and a
-  schema-valid analysis using the fake client, with zero network calls.
+  schema-valid analysis using the fake client, with zero network calls. **Delivered in P0.7** -
+  `causiq.cli`/`causiq.runner`, proven by `tests/unit/test_cli.py` and
+  `tests/integration/test_offline_guarantee.py`.
 
 ### Invariants
 
@@ -295,9 +326,14 @@ Phase 0 is complete when **every** item below passes. These are checks, not aspi
 - **AC-8** A test-only mutating tool is denied for absence of an approval token, even when the
   identity holds the permission. *(I4 — proves the Phase 5 gate)*
 - **AC-9** A run that exceeds its turn, token, or deadline budget terminates cleanly in
-  `BUDGET_EXCEEDED` with a persisted partial ledger and journal. *(I5, I8)*
+  `BUDGET_EXCEEDED` with a persisted partial ledger and journal. *(I5, I8)* **Delivered in P0.7** -
+  the persisted `InvestigationRun` record already carried the ledger's content (P0.3's `evidence`
+  field); P0.7 added the code path that actually writes it to disk. See
+  `tests/unit/test_runner.py::test_budget_exceeded_run_still_persists_its_partial_evidence`.
 - **AC-10** Two consecutive offline runs with the frozen clock produce byte-identical audit
-  journals. *(I6)*
+  journals. *(I6)* **Extended in P0.7** - the pre-existing test proved this only for a
+  hand-simulated pre-P0.6 slice; `tests/integration/test_real_agent_determinism.py` now proves it
+  against the actual `Investigator`.
 - **AC-11** Every non-`SELECT`/`WITH` statement submitted to `query_warehouse` is rejected before
   execution. *(§7.3)*
 
@@ -305,20 +341,28 @@ Phase 0 is complete when **every** item below passes. These are checks, not aspi
 
 - **AC-12** `make lint type test` is green: `ruff` clean, `mypy --strict` clean on `src/`, and the
   full offline suite passes with **no `ANTHROPIC_API_KEY` set and no network access**.
-- **AC-13** Coverage ≥ 85% overall on `src/causiq/`, with 100% on `domain/`, `evidence/ledger.py`,
-  and `tools/authz.py`.
+- **AC-13** Coverage ≥ 85% overall on `src/causiq/`, with 100% on `domain/`, `evidence/`, and
+  `authz/`. (Wording corrected in P0.7: `authz` became its own top-level package in P0.3, not
+  `tools/authz.py` as first drafted here - see Engineering Contract §4 for why. The actual gate,
+  unchanged throughout, also covers `tools/` in full.)
 - **AC-14** Live-API tests are visibly **skipped** (not passed, not errored) when no key is
   present, and pass when one is.
 - **AC-15** CI runs the offline suite on every push and is green.
 - **AC-16** A two-turn live run records `usage.cache_read_input_tokens > 0`, proving the
-  prompt-cache prefix is stable. *(§6.3)*
+  prompt-cache prefix is stable. *(§6.3)* **Mechanism delivered in P0.7** - `ModelTurn` carries
+  `cache_read_input_tokens`/`cache_creation_input_tokens`, threaded from the real adapter, and
+  `tests/integration/test_anthropic_live.py::test_live_second_call_hits_the_prompt_cache` asserts
+  exactly this. Not yet executed against the live API in this environment (no key available) -
+  the same operational caveat as AC-1.
 
 ### Documentation
 
 - **AC-17** `README.md` gets a new engineer from clone to a green `--dry-run` in under five
-  minutes, on Windows and on Linux.
+  minutes, on Windows and on Linux. **Delivered in P0.7** - the quickstart section runs
+  `causiq investigate INC-001 --dry-run` directly; manually verified in this environment (Windows).
 - **AC-18** `docs/architecture/` contains the execution-flow and data-flow diagrams matching the
-  implementation, and ADRs 0001–0005 exist as numbered files.
+  implementation, and ADRs 0001–0005 exist as numbered files. **Delivered in P0.7** -
+  `docs/architecture/execution-flow.md` and `data-flow.md`; ADRs now run 0001–0008.
 - **AC-19** Every module carries a maturity label. Phase 0 ships **nothing** labelled
   `production-ready` — observability lands in Phase 3, so the §11 checklist cannot yet be
   satisfied. Target label for Phase 0 components is `hardened`.

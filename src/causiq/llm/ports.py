@@ -115,6 +115,12 @@ class ModelTurn(BaseModel):
     analysis: Analysis | None = None
     input_tokens: int = Field(default=0, ge=0)
     output_tokens: int = Field(default=0, ge=0)
+    #: Prompt-cache accounting (Engineering Contract 6.3, P0.7). Additive
+    #: fields with a zero default: a client that never reports caching (every
+    #: existing `FakeModelClient` script) is unaffected, and only the real
+    #: Anthropic adapter ever sets these to something nonzero.
+    cache_read_input_tokens: int = Field(default=0, ge=0)
+    cache_creation_input_tokens: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def _exactly_one_kind(self) -> ModelTurn:

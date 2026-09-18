@@ -5,17 +5,10 @@ from authorized systems, correlates it on a shared incident timeline, and produc
 analysis in which **every claim resolves to a specific recorded piece of evidence**. Remediation
 is proposed, never executed without human approval, and verified afterwards.
 
-**Status:** Phase 0 in progress. P0.1 (foundation) through P0.6 (the model client port, the
-Anthropic adapter, and a bounded investigator agent) are complete and `hardened` — a real agent
-now drives the P0.4/P0.5 capability layer end to end, offline and deterministically by default,
-producing a schema-validated, citation-checked analysis. Nothing in P0.6 is `production-ready`;
-see `docs/PHASE_0_PLAN.md`. The CLI operator surface (`causiq investigate ...`) arrives in P0.7.
-
-Running a real investigation requires `ANTHROPIC_API_KEY` in the environment — Causiq never
-reads credentials from a Claude web session, a CLI profile, or anywhere else. The full offline
-test suite (`make test`) needs no key and makes no network calls; a small opt-in live suite
-(`make test-live`) exercises the real Anthropic adapter and is skipped automatically without a
-key.
+**Status:** Phase 0 in progress. P0.1 (foundation) through P0.7 (the CLI/runner operator surface)
+are complete and `hardened` — a real agent drives the full capability layer end to end, offline
+and deterministically by default, producing a schema-validated, citation-checked analysis that is
+persisted to disk. Nothing here is `production-ready`; see `docs/PHASE_0_PLAN.md`.
 
 ## Getting started
 
@@ -26,12 +19,70 @@ git clone <this repo> && cd CAUSIQ
 uv sync --extra dev          # or: make setup   /   ./tasks.ps1 setup
 ```
 
+### Quickstart: a dry-run investigation — no API key, no network
+
+```bash
+uv run causiq investigate INC-001 --dry-run
+```
+
+This drives the *real* agent loop against the *real* tool-execution and authorization path and a
+real (auto-built on first use) DuckDB warehouse — only the model is a deterministic, scripted
+fake, so the whole thing is free, offline, and fast on a fresh clone, on Windows or Linux.
+
+Expected output (the run id and paths vary per invocation):
+
+```
+audit journal: var/audit/run_xxxxxxxxxxxxxxxx.jsonl
+result record: var/runs/run_xxxxxxxxxxxxxxxx.json
+run:       run_xxxxxxxxxxxxxxxx
+incident:  inc_INC-001
+state:     completed
+evidence:  3 record(s)
+outcome:   completed
+root cause: analytics.revenue_daily aggregates only status = 'COMPLETED'. On 2026-09-07 ...
+summary:   Revenue under-reported on 2026-09-07 because a new upstream order status is excluded ...
+```
+
+Add `--json` to print the full, schema-valid `InvestigationRun` instead of the human summary
+(useful for piping to `jq` or a file — the artifact paths still go to stderr, so stdout stays
+pure JSON):
+
+```bash
+uv run causiq investigate INC-001 --dry-run --json
+```
+
+**Where things are written.** Every invocation persists two files, named after the run's id:
+`var/audit/<run_id>.jsonl` — the append-only audit trail, one JSON line per event, flushed as it
+is written, so it survives a crash mid-run — and `var/runs/<run_id>.json` — the terminal
+`InvestigationRun` record, including every piece of evidence collected and the analysis if any.
+Both paths are printed to stderr on every invocation. `var/` is git-ignored; nothing under it is
+committed.
+
+An unknown incident id, or a live invocation with no key, fails immediately with a clear message
+on stderr and exit code `2` — nothing is written, because no investigation ever started.
+
+### Live investigation — requires `ANTHROPIC_API_KEY`
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...      # PowerShell: $env:ANTHROPIC_API_KEY = "sk-ant-..."
+uv run causiq investigate INC-001
+```
+
+Drop `--dry-run` and Causiq calls the real Anthropic API instead of the scripted fake model.
+Everything else — the tool layer, authorization, evidence collection, citation validation, and
+persistence — is identical to the dry run. Causiq never reads credentials from a Claude web
+session, a CLI profile, or anywhere else; without a key set, this fails clearly rather than
+silently falling back to one.
+
+### Everything else
+
 Then run the gate. It is offline and deterministic: **no API key, no network**.
 
 | Task | macOS / Linux | Windows |
 |---|---|---|
 | Everything CI runs | `make check` | `./tasks.ps1 check` |
 | Tests only | `make test` | `./tasks.ps1 test` |
+| Live-API tests (needs a key) | `make test-live` | `./tasks.ps1 test-live` |
 | Lint + format check | `make lint` | `./tasks.ps1 lint` |
 | Type check | `make type` | `./tasks.ps1 type` |
 | Coverage gates | `make cov` | `./tasks.ps1 cov` |
@@ -40,7 +91,8 @@ Then run the gate. It is offline and deterministic: **no API key, no network**.
 commands. Both use `uv run --no-sync`, because the working copy lives in a OneDrive-synced folder
 where uv's reinstall step intermittently hits a locked directory.
 
-Expected result: **346 passed**, 100% coverage, mypy and ruff clean.
+Expected result: **439 passed, 3 deselected** (the deselected tests are the opt-in live suite),
+100% coverage, mypy and ruff clean.
 
 ## Documents
 
@@ -48,7 +100,8 @@ Expected result: **346 passed**, 100% coverage, mypy and ruff clean.
 |---|---|
 | [docs/ENGINEERING_CONTRACT.md](docs/ENGINEERING_CONTRACT.md) | The binding technical agreement: invariants, architecture, technology decisions, Claude usage contract, security model, testing contract, definition of done, and the 28-requirement traceability matrix |
 | [docs/PHASE_0_PLAN.md](docs/PHASE_0_PLAN.md) | The first vertical slice: the seeded incident, work breakdown, 19 acceptance criteria, and the explicit list of what is *not* being built yet |
-| [docs/adr/](docs/adr/) | Architecture Decision Records 0001–0007 |
+| [docs/architecture/](docs/architecture/) | Execution-flow and data-flow diagrams for the code as it exists today (P0.6/P0.7) |
+| [docs/adr/](docs/adr/) | Architecture Decision Records 0001–0008 |
 
 ## Core invariants
 

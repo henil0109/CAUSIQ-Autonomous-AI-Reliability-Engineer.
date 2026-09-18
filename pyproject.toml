@@ -17,8 +17,15 @@ dependencies = [
 ]
 
 # Deliberately NOT yet declared - each arrives with the phase that needs it:
-#   typer      -> P0.7 (CLI delivery surface)
 #   opentelemetry-sdk, langfuse -> P3 (ADR-0004 fixes the seam now, not the exporter)
+#
+# Deliberately NOT added even though P0.7 needed a CLI: a third-party CLI
+# framework (e.g. Typer). The delivered surface is one subcommand and two
+# boolean flags - stdlib argparse expresses that directly, and the dependency
+# policy above requires more justification than convenience.
+
+[project.scripts]
+causiq = "causiq.cli:main"
 
 [project.optional-dependencies]
 dev = [

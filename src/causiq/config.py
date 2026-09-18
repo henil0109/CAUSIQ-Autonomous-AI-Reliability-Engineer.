@@ -70,6 +70,11 @@ class Settings(BaseSettings):
 
     # --- Storage -----------------------------------------------------------
     audit_dir: Path = Path("var/audit")
+    #: Where the CLI runner (P0.7) persists each run's terminal
+    #: `InvestigationRun` record - including its evidence, which is what
+    #: makes AC-9's "persisted partial ledger" true rather than aspirational.
+    #: See `causiq.runner` module docstring for the persistence boundary.
+    runs_dir: Path = Path("var/runs")
 
     @property
     def has_api_key(self) -> bool:

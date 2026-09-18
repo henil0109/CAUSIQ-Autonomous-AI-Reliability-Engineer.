@@ -55,6 +55,11 @@ HISTORY = (ConversationMessage(role=MessageRole.USER, content=(TextBlock(text="h
 class FakeUsage:
     input_tokens: int = 10
     output_tokens: int = 5
+    #: `Optional[int]` on the real `Usage` type - `None` is the common case
+    #: (nothing cache-related to report), matched here so the adapter's `or 0`
+    #: normalization is exercised by the *existing* tests, not just new ones.
+    cache_read_input_tokens: int | None = None
+    cache_creation_input_tokens: int | None = None
 
 
 @dataclass
@@ -241,6 +246,11 @@ def test_tool_use_response_becomes_tool_calls() -> None:
     )
     assert turn.input_tokens == 10
     assert turn.output_tokens == 5
+    # FakeUsage's cache fields default to None, matching the real SDK's common
+    # case (nothing cache-related to report) - the adapter must not propagate
+    # that None into a `ge=0` int field.
+    assert turn.cache_read_input_tokens == 0
+    assert turn.cache_creation_input_tokens == 0
 
 
 def test_tool_use_response_with_multiple_calls_extracts_all_of_them() -> None:
@@ -273,6 +283,20 @@ def test_end_turn_response_becomes_a_validated_analysis() -> None:
     assert turn.is_final
     assert turn.analysis is not None
     assert turn.analysis.outcome is AnalysisOutcome.INCONCLUSIVE
+
+
+def test_cache_usage_is_threaded_through_when_reported() -> None:
+    """The other half of the None-default test: when the API *does* report
+    cache activity, the real numbers reach `ModelTurn`, not just a zero."""
+    resp = FakeMessage(
+        "end_turn",
+        [FakeTextBlock(_analysis_json())],
+        usage=FakeUsage(cache_read_input_tokens=1_200, cache_creation_input_tokens=340),
+    )
+    client, _ = _client(resp)
+    turn = client.investigate(system="s", tools=(), history=HISTORY)
+    assert turn.cache_read_input_tokens == 1_200
+    assert turn.cache_creation_input_tokens == 340
 
 
 def test_tool_use_with_no_tool_use_block_is_a_contract_error() -> None:

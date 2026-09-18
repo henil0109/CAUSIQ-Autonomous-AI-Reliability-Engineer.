@@ -1,7 +1,7 @@
 # Causiq — Engineering Contract
 
 **Project:** Causiq — Autonomous AI Reliability Engineer
-**Status:** v1.0 approved — Phase 0 in progress (P0.1–P0.6 complete)
+**Status:** v1.0 approved — Phase 0 in progress (P0.1–P0.7 complete)
 **Owner:** Henil Patel
 **Last updated:** 2026-09-17
 
@@ -249,8 +249,8 @@ causiq/
 │   ├── obs/
 │   │   ├── ports.py               # Tracer protocol + span-name constants
 │   │   └── noop.py                # P0 implementation
-│   ├── runner.py                  # P0.7 (not yet built): orchestrates one InvestigationRun via the CLI
-│   └── cli.py                     # P0.7 (not yet built): operator surface
+│   ├── runner.py                  # P0.7: builds the ModelClient/registry, runs Investigator, persists the result
+│   └── cli.py                     # P0.7: `causiq investigate <id> [--dry-run] [--json]` - argparse, thin
 ├── fixtures/                      # the versioned world Causiq investigates
 │   ├── warehouse/seed.sql         # DuckDB schema + seeded rows, including the defect
 │   ├── incidents/INC-001.json
@@ -450,14 +450,16 @@ it. Therefore:
 5. `usage.cache_read_input_tokens` is recorded on every call and asserted non-zero in the
    multi-turn integration test. A silent cache miss is a test failure, not a cost surprise.
 
-**P0.6 status:** 1-3 are built (the frozen system prompt in `llm/prompts/investigator_system.md`,
-the cache breakpoint in the request, and `ToolRegistry.schemas()`'s deterministic ordering from
-P0.4, sent unmodified). Item 4, the mid-run operator-instruction channel, does not exist yet -
-there is no operator in the loop to send one. Item 5 is only partly true: `ModelTurn` captures
-`input_tokens`/`output_tokens` on every call, but no P0.6 test asserts a live cache hit, since
-that requires the real API and a multi-turn exchange with a stable prefix, which the current live
-suite (deliberately narrow per §11 below) does not attempt. Both are candidates for whichever
-phase first needs a live, multi-turn, cost-sensitive run.
+**Status:** 1-3 and 5 are built. The frozen system prompt lives in
+`llm/prompts/investigator_system.md`, the cache breakpoint sits in every request, and
+`ToolRegistry.schemas()`'s deterministic ordering (P0.4) is sent unmodified. `ModelTurn` carries
+`cache_read_input_tokens`/`cache_creation_input_tokens` (P0.7, additive, default `0`, threaded
+from the real adapter's `Usage` fields), and
+`tests/integration/test_anthropic_live.py::test_live_second_call_hits_the_prompt_cache` asserts a
+nonzero cache read on a second call sharing an identical prefix - not yet executed against the
+live API in this environment (no key available), which is an operational step, not a code gap.
+Item 4, the mid-run operator-instruction channel, still does not exist - there is no operator in
+the loop to send one yet. That remains a candidate for whichever phase first needs one.
 
 **Review script:** *"Cache hit rate isn't a cost optimization we hope for — it's an invariant we
 assert. The system prompt is frozen by construction and the tool list is sorted, so the prefix

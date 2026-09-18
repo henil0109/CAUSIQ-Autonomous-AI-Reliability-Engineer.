@@ -66,8 +66,25 @@ def test_usage_defaults_to_zero_and_must_be_non_negative() -> None:
     turn = ModelTurn(analysis=_inconclusive_analysis())
     assert turn.input_tokens == 0
     assert turn.output_tokens == 0
+    assert turn.cache_read_input_tokens == 0
+    assert turn.cache_creation_input_tokens == 0
     with pytest.raises(ValidationError):
         ModelTurn(analysis=_inconclusive_analysis(), input_tokens=-1)
+    with pytest.raises(ValidationError):
+        ModelTurn(analysis=_inconclusive_analysis(), cache_read_input_tokens=-1)
+
+
+def test_cache_usage_fields_are_additive_and_optional() -> None:
+    """A `FakeModelClient` script written before P0.7 - a bare `ModelTurn`
+    with no cache fields - must still construct cleanly, and a script that
+    does report cache usage must carry it through untouched."""
+    turn = ModelTurn(
+        analysis=_inconclusive_analysis(),
+        cache_read_input_tokens=500,
+        cache_creation_input_tokens=25,
+    )
+    assert turn.cache_read_input_tokens == 500
+    assert turn.cache_creation_input_tokens == 25
 
 
 def test_model_turn_is_frozen() -> None:

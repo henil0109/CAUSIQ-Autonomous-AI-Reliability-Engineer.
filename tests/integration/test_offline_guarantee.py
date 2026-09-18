@@ -9,11 +9,13 @@ from __future__ import annotations
 import importlib
 import pkgutil
 import socket
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 import causiq
+from causiq.cli import main as cli_main
 
 pytestmark = pytest.mark.integration
 
@@ -83,3 +85,29 @@ def test_no_network_access_is_attempted(monkeypatch: pytest.MonkeyPatch) -> None
         collected_at=now,
     )
     assert validate_citations(make_analysis(citations=("ev_001",)), ledger).valid
+
+
+def test_dry_run_cli_makes_no_network_access(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The P0.7 addition to the offline guarantee: the full CLI/runner path -
+    argument parsing, `FakeModelClient`, the real `Investigator`, the real
+    `ToolExecutor`/AuthZ path, and a real (local-file) DuckDB warehouse -
+    must not open a socket. `test_no_network_access_is_attempted` above
+    proves this for the P0.1-P0.3 pieces only; this proves it for the agent
+    loop and CLI that P0.6/P0.7 added on top.
+    """
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("CAUSIQ_AUDIT_DIR", str(tmp_path / "audit"))
+    monkeypatch.setenv("CAUSIQ_RUNS_DIR", str(tmp_path / "runs"))
+
+    def forbidden(*args: Any, **kwargs: Any) -> None:
+        del args, kwargs
+        msg = "the dry-run path must not open a network connection"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(socket, "socket", forbidden)
+    monkeypatch.setattr(socket, "create_connection", forbidden)
+
+    exit_code = cli_main(["investigate", "INC-001", "--dry-run"])
+    assert exit_code == 0

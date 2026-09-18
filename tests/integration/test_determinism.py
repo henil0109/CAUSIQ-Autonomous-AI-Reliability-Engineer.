@@ -4,7 +4,9 @@ Two properties are proven here:
 
 * **AC-10** - two runs with a frozen clock produce byte-identical audit journals.
   Without this, "reproducible" is a claim; with it, a reviewer can diff two runs
-  and any difference is real signal.
+  and any difference is real signal. This file proves it against a hand-simulated
+  P0.1-P0.3 slice only; see `tests/integration/test_real_agent_determinism.py`
+  (P0.7) for the same proof against the real `Investigator`.
 * **AC-12 / AC-14** - the default suite touches no network and needs no API key.
 
 These use the real filesystem, hence `integration` rather than `unit`.
@@ -32,9 +34,15 @@ pytestmark = pytest.mark.integration
 def _simulate_run(journal_path: Path) -> tuple[str, str]:
     """A miniature end-to-end slice using only P0.1-P0.3 components.
 
-    Deliberately not the real agent loop - that is P0.7. It exercises the pieces
-    that exist: identity, authorization, evidence collection, citation validation,
-    and audit recording, all under injected time and ids.
+    Written before `Investigator` existed, so it hand-simulates the pieces
+    that were available then: identity, authorization, evidence collection,
+    citation validation, and audit recording, all under injected time and
+    ids. Kept as-is because it is still a valid, cheap proof of the
+    underlying primitives' determinism - but it does not exercise the real
+    agent loop. `tests/integration/test_real_agent_determinism.py` proves
+    the same byte-identical-journal property (AC-10) against the actual
+    `Investigator`, real `ToolExecutor`/AuthZ, and a real DuckDB warehouse;
+    that file, not this one, is the authoritative P0.6+ determinism proof.
     """
     from causiq.authz import AgentIdentity
 
