@@ -72,12 +72,15 @@ class Confidence(StrEnum):
 class EvidenceSource(StrEnum):
     """Systems Causiq may collect evidence from.
 
-    Phase 0 has exactly one. Phase 1 adds DBT, AIRFLOW, GIT, DEPLOYMENT and
-    DATA_QUALITY as their tools land - deliberately not declared before then, so
-    the enum never describes a capability that does not exist.
+    Phase 0 had exactly one. Phase 1 adds DBT, GIT, DEPLOYMENT and DATA_QUALITY
+    as their tools land - deliberately not declared before then, so the enum
+    never describes a capability that does not exist. AIRFLOW is the first of
+    those, added in P1.1 alongside `causiq.tools.airflow.AirflowDagRunsTool`
+    (ADR-0009).
     """
 
     WAREHOUSE = "warehouse"
+    AIRFLOW = "airflow"
 
 
 class HypothesisStatus(StrEnum):

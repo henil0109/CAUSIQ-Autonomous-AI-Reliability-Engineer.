@@ -1,0 +1,140 @@
+{
+  "dags": [
+    {
+      "dag_id": "daily_revenue_pipeline",
+      "runs": [
+        {
+          "dag_run_id": "daily_revenue_pipeline__2026-09-03T00:00:00+00:00",
+          "execution_date": "2026-09-03T00:00:00+00:00",
+          "start_date": "2026-09-03T00:05:00+00:00",
+          "end_date": "2026-09-03T00:18:00+00:00",
+          "state": "success",
+          "tasks": [
+            {
+              "task_id": "extract_orders",
+              "state": "success",
+              "start_date": "2026-09-03T00:05:00+00:00",
+              "end_date": "2026-09-03T00:11:00+00:00"
+            },
+            {
+              "task_id": "load_orders",
+              "state": "success",
+              "start_date": "2026-09-03T00:11:00+00:00",
+              "end_date": "2026-09-03T00:18:00+00:00"
+            }
+          ]
+        },
+        {
+          "dag_run_id": "daily_revenue_pipeline__2026-09-04T00:00:00+00:00",
+          "execution_date": "2026-09-04T00:00:00+00:00",
+          "start_date": "2026-09-04T00:05:00+00:00",
+          "end_date": "2026-09-04T00:19:00+00:00",
+          "state": "success",
+          "tasks": [
+            {
+              "task_id": "extract_orders",
+              "state": "success",
+              "start_date": "2026-09-04T00:05:00+00:00",
+              "end_date": "2026-09-04T00:12:00+00:00"
+            },
+            {
+              "task_id": "load_orders",
+              "state": "success",
+              "start_date": "2026-09-04T00:12:00+00:00",
+              "end_date": "2026-09-04T00:19:00+00:00"
+            }
+          ]
+        },
+        {
+          "dag_run_id": "daily_revenue_pipeline__2026-09-05T00:00:00+00:00",
+          "execution_date": "2026-09-05T00:00:00+00:00",
+          "start_date": "2026-09-05T00:05:00+00:00",
+          "end_date": "2026-09-05T00:41:00+00:00",
+          "state": "failed",
+          "tasks": [
+            {
+              "task_id": "extract_orders",
+              "state": "success",
+              "start_date": "2026-09-05T00:05:00+00:00",
+              "end_date": "2026-09-05T00:11:00+00:00"
+            },
+            {
+              "task_id": "load_orders",
+              "state": "failed",
+              "start_date": "2026-09-05T00:11:00+00:00",
+              "end_date": "2026-09-05T00:41:00+00:00"
+            }
+          ]
+        },
+        {
+          "dag_run_id": "daily_revenue_pipeline__2026-09-06T00:00:00+00:00",
+          "execution_date": "2026-09-06T00:00:00+00:00",
+          "start_date": "2026-09-06T00:05:00+00:00",
+          "end_date": "2026-09-06T00:20:00+00:00",
+          "state": "success",
+          "tasks": [
+            {
+              "task_id": "extract_orders",
+              "state": "success",
+              "start_date": "2026-09-06T00:05:00+00:00",
+              "end_date": "2026-09-06T00:13:00+00:00"
+            },
+            {
+              "task_id": "load_orders",
+              "state": "success",
+              "start_date": "2026-09-06T00:13:00+00:00",
+              "end_date": "2026-09-06T00:20:00+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dag_id": "customer_ltv_pipeline",
+      "runs": [
+        {
+          "dag_run_id": "customer_ltv_pipeline__2026-09-06T00:00:00+00:00",
+          "execution_date": "2026-09-06T00:00:00+00:00",
+          "start_date": "2026-09-06T01:00:00+00:00",
+          "end_date": "2026-09-06T01:22:00+00:00",
+          "state": "success",
+          "tasks": [
+            {
+              "task_id": "build_ltv_features",
+              "state": "success",
+              "start_date": "2026-09-06T01:00:00+00:00",
+              "end_date": "2026-09-06T01:14:00+00:00"
+            },
+            {
+              "task_id": "publish_ltv_scores",
+              "state": "success",
+              "start_date": "2026-09-06T01:14:00+00:00",
+              "end_date": "2026-09-06T01:22:00+00:00"
+            }
+          ]
+        },
+        {
+          "dag_run_id": "customer_ltv_pipeline__2026-09-07T00:00:00+00:00",
+          "execution_date": "2026-09-07T00:00:00+00:00",
+          "start_date": "2026-09-07T01:00:00+00:00",
+          "end_date": "2026-09-07T01:23:00+00:00",
+          "state": "success",
+          "tasks": [
+            {
+              "task_id": "build_ltv_features",
+              "state": "success",
+              "start_date": "2026-09-07T01:00:00+00:00",
+              "end_date": "2026-09-07T01:15:00+00:00"
+            },
+            {
+              "task_id": "publish_ltv_scores",
+              "state": "success",
+              "start_date": "2026-09-07T01:15:00+00:00",
+              "end_date": "2026-09-07T01:23:00+00:00"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

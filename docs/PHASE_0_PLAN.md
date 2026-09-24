@@ -378,7 +378,7 @@ forgotten.
 |---|---|
 | Multiple agents, an orchestrator, sub-agent decomposition | Orchestration without a working single agent is architecture without evidence. P2. |
 | A2A messaging, message bus, agent registry | There is one agent. A protocol between one participant is ceremony. P2. |
-| dbt / Airflow / git / deploy / metrics tools | One tool proves the tool *contract*. Five tools before the contract is proven means five rewrites. P1. |
+| dbt / Airflow / git / deploy / metrics tools | One tool proves the tool *contract*. Five tools before the contract is proven means five rewrites. P1 — see `docs/PHASE_1_PLAN.md` (Airflow delivered in P1.1; dbt/git/deploy/DQ remain deferred there too). |
 | MCP client or MCP server | Native tool use proves the capability layer first; MCP is a transport for the same contract. P6. |
 | OpenTelemetry, Langfuse | The seam and the span vocabulary land in P0; the exporters land in P3, when there is a multi-agent run whose shape is worth tracing. |
 | LLM-as-a-Judge, eval harness, golden set | Evaluation needs a stable output contract and more than one incident to be meaningful. P4. |
