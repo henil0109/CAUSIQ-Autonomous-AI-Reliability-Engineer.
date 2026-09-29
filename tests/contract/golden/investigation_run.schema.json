@@ -280,10 +280,11 @@
       "type": "object"
     },
     "EvidenceSource": {
-      "description": "Systems Causiq may collect evidence from.\n\nPhase 0 had exactly one. Phase 1 adds DBT, GIT, DEPLOYMENT and DATA_QUALITY\nas their tools land - deliberately not declared before then, so the enum\nnever describes a capability that does not exist. AIRFLOW is the first of\nthose, added in P1.1 alongside `causiq.tools.airflow.AirflowDagRunsTool`\n(ADR-0009).",
+      "description": "Systems Causiq may collect evidence from.\n\nPhase 0 had exactly one. Phase 1 adds GIT, DEPLOYMENT and DATA_QUALITY as\ntheir tools land - deliberately not declared before then, so the enum\nnever describes a capability that does not exist. AIRFLOW (P1.1) and DBT\n(P1.2) are the first two, added alongside\n`causiq.tools.airflow.AirflowDagRunsTool` and\n`causiq.tools.dbt.DbtRunResultsTool` respectively (ADR-0009).",
       "enum": [
         "warehouse",
-        "airflow"
+        "airflow",
+        "dbt"
       ],
       "title": "EvidenceSource",
       "type": "string"

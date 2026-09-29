@@ -1,0 +1,82 @@
+{
+  "models": [
+    {
+      "unique_id": "model.revenue_analytics.stg_orders",
+      "name": "stg_orders",
+      "results": [
+        {
+          "invocation_id": "inv_20260903_0015",
+          "generated_at": "2026-09-03T00:15:00+00:00",
+          "status": "success",
+          "execution_time": 4.2
+        },
+        {
+          "invocation_id": "inv_20260904_0015",
+          "generated_at": "2026-09-04T00:15:00+00:00",
+          "status": "success",
+          "execution_time": 4.5
+        },
+        {
+          "invocation_id": "inv_20260905_0015",
+          "generated_at": "2026-09-05T00:15:00+00:00",
+          "status": "success",
+          "execution_time": 4.1
+        },
+        {
+          "invocation_id": "inv_20260906_0015",
+          "generated_at": "2026-09-06T00:15:00+00:00",
+          "status": "success",
+          "execution_time": 4.3
+        }
+      ]
+    },
+    {
+      "unique_id": "model.revenue_analytics.daily_revenue_pipeline",
+      "name": "daily_revenue_pipeline",
+      "results": [
+        {
+          "invocation_id": "inv_20260903_0020",
+          "generated_at": "2026-09-03T00:20:00+00:00",
+          "status": "success",
+          "execution_time": 11.8
+        },
+        {
+          "invocation_id": "inv_20260904_0020",
+          "generated_at": "2026-09-04T00:20:00+00:00",
+          "status": "success",
+          "execution_time": 12.1
+        },
+        {
+          "invocation_id": "inv_20260905_0020",
+          "generated_at": "2026-09-05T00:20:00+00:00",
+          "status": "error",
+          "execution_time": 2.0
+        },
+        {
+          "invocation_id": "inv_20260906_0020",
+          "generated_at": "2026-09-06T00:20:00+00:00",
+          "status": "success",
+          "execution_time": 12.4
+        }
+      ]
+    },
+    {
+      "unique_id": "model.revenue_analytics.customer_ltv",
+      "name": "customer_ltv",
+      "results": [
+        {
+          "invocation_id": "inv_20260906_0100",
+          "generated_at": "2026-09-06T01:00:00+00:00",
+          "status": "success",
+          "execution_time": 8.7
+        },
+        {
+          "invocation_id": "inv_20260907_0100",
+          "generated_at": "2026-09-07T01:00:00+00:00",
+          "status": "skipped",
+          "execution_time": 0.0
+        }
+      ]
+    }
+  ]
+}

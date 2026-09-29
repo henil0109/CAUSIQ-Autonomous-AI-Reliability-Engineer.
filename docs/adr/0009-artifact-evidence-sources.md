@@ -142,3 +142,17 @@ cares that this one reads a JSON file instead of a SQL database. The one new ris
 tool introduces - a model turning a string into a path - is closed twice over: there's no code path
 that ever builds a path from the model's input at all, and the input schema rejects anything
 path-shaped before that code would even run."*
+
+## Amendment (2026-09-29, during P1.2)
+
+dbt followed exactly the pattern this ADR describes, confirming it generalizes rather than being
+an Airflow-specific accident: `src/causiq/dbt_substrate.py` (a new sibling loader, not a merge
+into `artifact_substrate.py`) and `src/causiq/tools/dbt.py` (`DbtRunResultsTool`, `source=
+EvidenceSource.DBT`, `permission=Permission.ARTIFACTS_READ` - the same shared permission, no new
+one). The one deliberate divergence: dbt's real `unique_id` grammar
+(`<resource_type>.<package>.<name>`) needs dots, so `DbtRunResultsInput`'s pattern
+(`^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$`) permits single dots between segments where Airflow's
+excludes them entirely - it still cannot produce `..`, a leading/trailing dot, or any path
+separator, so the path-injection guarantee holds identically. No new abstraction, error type,
+`RunState`, or `AuditEventType` was needed. `EvidenceSource.DBT` is now delivered; `GIT`,
+`DEPLOYMENT`, and `DATA_QUALITY` remain undeclared until their own tools land.

@@ -1,7 +1,7 @@
 # Causiq — Phase 1 Evidence Surface Plan
 
 **Phase:** P1 — Full Evidence Surface
-**Status:** Approved — P1.1 complete; P1.2 onward not yet started
+**Status:** Approved — P1.1 and P1.2 complete; P1.3 onward not yet started
 **Depends on:** `ENGINEERING_CONTRACT.md` v1.0, `PHASE_0_PLAN.md` (Phase 0 complete, P0.1–P0.7)
 **Last updated:** 2026-09-24
 
@@ -92,7 +92,7 @@ generalizes rather than evidence the agent memorized one shape.
 |---|---|---|---|
 | Warehouse | `WAREHOUSE` | Delivered, P0.5 | `query_warehouse` |
 | Airflow | `AIRFLOW` | **Delivered, P1.1** | `query_airflow_runs` |
-| dbt | `DBT` | Deferred | P1.2 |
+| dbt | `DBT` | **Delivered, P1.2** | `query_dbt_run_results` |
 | Git | `GIT` | Deferred | P1.4 |
 | Deployment records | `DEPLOYMENT` | Deferred | P1.4 |
 | Data-quality results | `DATA_QUALITY` | Deferred | P1.3 |
@@ -222,6 +222,7 @@ by P1.1):
 - [x] Every pre-existing Phase 0 test still passes, unmodified
 - [x] No P0 security-relevant module (`agents/`, `tools/executor.py`, `tools/registry.py`,
       `authz/`, `evidence/`) touched
-- [ ] Reviewed and committed (pending explicit review sign-off per project process)
+- [x] Reviewed and committed
 
-Only then does P1.2 planning begin.
+P1.2 (`DbtRunResultsTool`) followed this same pattern and is also complete. P1.3 planning begins
+next.
