@@ -1,0 +1,9 @@
+{
+  "incident_id": "inc_INC-002",
+  "title": "revenue_daily_freshness check failing since 2026-09-05",
+  "description": "The revenue_daily_freshness data-quality check has been failing since 2026-09-05. analytics.revenue_daily has not received a new load for that date, while the surrounding days loaded normally. No error was reported by the check itself beyond the measured staleness exceeding its threshold.",
+  "severity": "high",
+  "detected_at": "2026-09-06T06:00:00+00:00",
+  "detected_by": "dq_monitor",
+  "affected_assets": ["analytics.revenue_daily", "daily_revenue_pipeline"]
+}

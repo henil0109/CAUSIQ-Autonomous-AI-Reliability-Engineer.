@@ -112,6 +112,40 @@ def test_revenue_daily_has_fourteen_days(warehouse_db_path: Path) -> None:
     assert count == 14
 
 
+# --------------------------------------------------------------------------- #
+# analytics.model_refresh_log - P1.3 (INC-002)
+# --------------------------------------------------------------------------- #
+def test_model_refresh_log_has_eight_rows(warehouse_db_path: Path) -> None:
+    """The planted warehouse-side write-audit fact has the expected shape:
+    8 recorded successful writes across the three models and their covered
+    dates (see seed.sql's own comment for exactly which)."""
+    con = duckdb.connect(str(warehouse_db_path), read_only=True)
+    try:
+        (count,) = con.execute("SELECT count(*) FROM analytics.model_refresh_log").fetchone()  # type: ignore[misc]
+    finally:
+        con.close()
+    assert count == 8
+
+
+def test_daily_revenue_pipeline_has_no_refresh_on_the_incident_date(
+    warehouse_db_path: Path,
+) -> None:
+    """The one fact INC-002 exists to prove is queryable: no successful
+    refresh of `daily_revenue_pipeline` is recorded for 2026-09-05, while the
+    surrounding days are present."""
+    con = duckdb.connect(str(warehouse_db_path), read_only=True)
+    try:
+        rows = con.execute(
+            "SELECT order_date FROM analytics.model_refresh_log "
+            "WHERE model_name = 'daily_revenue_pipeline' ORDER BY order_date"
+        ).fetchall()
+    finally:
+        con.close()
+    dates = [row[0].isoformat() for row in rows]
+    assert dates == ["2026-09-03", "2026-09-04", "2026-09-06"]
+    assert "2026-09-05" not in dates
+
+
 def test_incident_date_shows_pending_capture_and_prior_days_do_not(
     warehouse_db_path: Path,
 ) -> None:

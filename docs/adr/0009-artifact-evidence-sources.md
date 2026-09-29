@@ -154,5 +154,23 @@ one). The one deliberate divergence: dbt's real `unique_id` grammar
 (`^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$`) permits single dots between segments where Airflow's
 excludes them entirely - it still cannot produce `..`, a leading/trailing dot, or any path
 separator, so the path-injection guarantee holds identically. No new abstraction, error type,
-`RunState`, or `AuditEventType` was needed. `EvidenceSource.DBT` is now delivered; `GIT`,
-`DEPLOYMENT`, and `DATA_QUALITY` remain undeclared until their own tools land.
+`RunState`, or `AuditEventType` was needed. `EvidenceSource.DBT` is now delivered; `GIT` and
+`DEPLOYMENT` remain undeclared until their own tools land.
+
+## Amendment (2026-09-29, during P1.3)
+
+Data quality followed the same pattern a third time: `src/causiq/dq_substrate.py` (a third sibling
+loader - the "guard against drift" note above was reconsidered at this point and no shared base
+class was extracted, because the three loaders' actual duplication - a few lines of JSON parsing
+and a `ConfigurationError`-wrapping try/except - remains smaller than a shared abstraction would
+cost in indirection) and `src/causiq/tools/dq.py` (`DqCheckResultsTool`, `source=
+EvidenceSource.DATA_QUALITY`, `permission=Permission.ARTIFACTS_READ`). `DqCheckResultsInput`
+reused Airflow's identifier pattern (`^[A-Za-z0-9_-]{1,200}$`) rather than dbt's dotted one - DQ
+check names are conventionally simple identifiers, not namespaced.
+
+This milestone also exercised the pattern's first real multi-source consumer: `INC-002`
+(`fixtures/incidents/INC-002.json`) is investigated using all four tools
+(`query_warehouse`/`query_airflow_runs`/`query_dbt_run_results`/`query_dq_check_results`) in one
+run, through the unmodified `Investigator`/`ToolExecutor`/citation-validation path -
+`tests/integration/test_inc002_agent_investigation.py` is the proof. `EvidenceSource.DATA_QUALITY`
+is now delivered; `GIT` and `DEPLOYMENT` remain undeclared until their own tools land (P1.4).

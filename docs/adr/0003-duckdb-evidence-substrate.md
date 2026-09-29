@@ -50,3 +50,22 @@ investigation queries against it and assert result shapes.
 
 *"The substrate is local so the evaluation is honest. I know the true root cause of every seeded
 incident, which means I can score the agent instead of admiring it."*
+
+## Amendment (2026-09-29, during P1.3)
+
+`INC-002` needed a freshness fact `analytics.revenue_daily` had no way to express (it carries no
+load-timestamp column). Rather than add one to that table, `fixtures/warehouse/seed.sql` gained a
+second, fully additive table, `analytics.model_refresh_log(model_name, order_date, refreshed_at)`
+- `raw.orders` and `analytics.revenue_daily` are untouched.
+
+This table is deliberately **not** computed from, generated from, or kept in sync with the dbt
+run-results fixture. It is an independently authored warehouse-side observation, planted by hand
+exactly like `raw.orders` - a plausible fact the warehouse itself would track (when did each
+model's output last receive a successful write), asserted on its own terms. It happens to show a
+gap for `daily_revenue_pipeline` on 2026-09-05 and for `customer_ltv` on 2026-09-07. Whether that
+gap aligns with what the Airflow or dbt evidence separately shows is exactly the correlation
+`INC-002`'s investigation is meant to discover by reasoning across independent evidence sources -
+not a relationship this ADR's fixtures assert or encode on the investigation's behalf. Keeping the
+sources independent this way is what makes the multi-source correlation in `INC-002` a real test
+of the Investigator's reasoning rather than a fact the fixture author already worked out and wrote
+down twice. See ADR-0009's P1.3 amendment for the DQ/dbt/Airflow tool side of `INC-002`.

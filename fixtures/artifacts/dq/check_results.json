@@ -1,0 +1,52 @@
+{
+  "checks": [
+    {
+      "check_name": "revenue_daily_freshness",
+      "dataset": "analytics.revenue_daily",
+      "results": [
+        {
+          "checked_at": "2026-09-03T01:00:00+00:00",
+          "status": "pass",
+          "measured_freshness_minutes": 39,
+          "threshold_minutes": 60
+        },
+        {
+          "checked_at": "2026-09-04T01:00:00+00:00",
+          "status": "pass",
+          "measured_freshness_minutes": 39,
+          "threshold_minutes": 60
+        },
+        {
+          "checked_at": "2026-09-05T01:00:00+00:00",
+          "status": "fail",
+          "measured_freshness_minutes": 1479,
+          "threshold_minutes": 60
+        },
+        {
+          "checked_at": "2026-09-06T01:00:00+00:00",
+          "status": "pass",
+          "measured_freshness_minutes": 39,
+          "threshold_minutes": 60
+        }
+      ]
+    },
+    {
+      "check_name": "customer_ltv_freshness",
+      "dataset": "analytics.customer_ltv",
+      "results": [
+        {
+          "checked_at": "2026-09-06T02:00:00+00:00",
+          "status": "pass",
+          "measured_freshness_minutes": 59,
+          "threshold_minutes": 60
+        },
+        {
+          "checked_at": "2026-09-07T02:00:00+00:00",
+          "status": "fail",
+          "measured_freshness_minutes": 1499,
+          "threshold_minutes": 60
+        }
+      ]
+    }
+  ]
+}

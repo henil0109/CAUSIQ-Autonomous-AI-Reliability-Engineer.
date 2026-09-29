@@ -80,6 +80,7 @@ from causiq.llm.ports import (
 from causiq.tools import ToolRegistry
 from causiq.tools.airflow import AirflowDagRunsTool
 from causiq.tools.dbt import DbtRunResultsTool
+from causiq.tools.dq import DqCheckResultsTool
 from causiq.tools.warehouse import QueryWarehouseTool
 
 #: The identity every CLI-driven investigation runs under. One fixed identity
@@ -243,7 +244,7 @@ def build_model_client(*, dry_run: bool, settings: Settings) -> ModelClient:
 def build_registry(*, warehouse_path: Path = DEFAULT_WAREHOUSE_PATH) -> ToolRegistry:
     """The real tool registry: `query_warehouse` plus every registered
     artifact-evidence tool (P1.1 adds `query_airflow_runs`, P1.2 adds
-    `query_dbt_run_results`).
+    `query_dbt_run_results`, P1.3 adds `query_dq_check_results`).
 
     Building the warehouse file on first use (rather than requiring a
     separate manual step) is what lets a fresh clone reach a working
@@ -251,10 +252,10 @@ def build_registry(*, warehouse_path: Path = DEFAULT_WAREHOUSE_PATH) -> ToolRegi
     already-reviewed function `scripts/seed_warehouse.py` calls; this is not
     a new way of writing to the warehouse, only a convenience call to the
     existing one (`causiq.evidence_substrate` remains the only module that
-    opens the file read-write). `AirflowDagRunsTool`/`DbtRunResultsTool` need
-    no equivalent bootstrap step - each fixture is a static, already-committed
-    file (P1 architecture plan §9), so each tool is simply constructed and
-    registered.
+    opens the file read-write). `AirflowDagRunsTool`/`DbtRunResultsTool`/
+    `DqCheckResultsTool` need no equivalent bootstrap step - each fixture is a
+    static, already-committed file (P1 architecture plan §9), so each tool is
+    simply constructed and registered.
     """
     if not warehouse_path.exists():
         build_warehouse_db(warehouse_path)
@@ -262,6 +263,7 @@ def build_registry(*, warehouse_path: Path = DEFAULT_WAREHOUSE_PATH) -> ToolRegi
     registry.register(QueryWarehouseTool(warehouse_path))
     registry.register(AirflowDagRunsTool())
     registry.register(DbtRunResultsTool())
+    registry.register(DqCheckResultsTool())
     return registry
 
 

@@ -85,3 +85,46 @@ FROM raw.orders
 WHERE status = 'COMPLETED'
 GROUP BY 1
 ORDER BY 1;
+
+-- --------------------------------------------------------------------------
+-- analytics.model_refresh_log - P1.3 (INC-002): the one freshness fact the
+-- warehouse did not previously carry. Fully additive - raw.orders and
+-- analytics.revenue_daily above are untouched by this section.
+--
+-- An independently authored warehouse-side observation, in the same spirit
+-- as a warehouse's own internal write-audit log or a dbt source-freshness
+-- table: it records, per model and date, when that model's output last
+-- received a successful write - a fact the warehouse itself would plausibly
+-- track, regardless of what any other system reports. It is planted here by
+-- hand, exactly like raw.orders above, and is not computed from, generated
+-- from, or kept in sync with any other fixture file. It happens to show a
+-- gap for daily_revenue_pipeline on 2026-09-05 and for customer_ltv on
+-- 2026-09-07 - whether that gap correlates with what the Airflow or dbt
+-- evidence separately shows is exactly the kind of connection the
+-- Investigator is meant to discover by reasoning across independent
+-- evidence sources, not something asserted or encoded by this fixture.
+--
+-- Concretely, one row per (model, date) that DID receive a successful
+-- write:
+--   stg_orders             - 09-03, 09-04, 09-05, 09-06 (4 rows)
+--   daily_revenue_pipeline - 09-03, 09-04, 09-06 (no row for 09-05)
+--   customer_ltv           - 09-06 (no row for 09-07)
+-- --------------------------------------------------------------------------
+CREATE TABLE analytics.model_refresh_log (
+    model_name VARCHAR NOT NULL,
+    order_date DATE NOT NULL,
+    refreshed_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (model_name, order_date)
+);
+
+INSERT INTO analytics.model_refresh_log (model_name, order_date, refreshed_at) VALUES
+    ('stg_orders',             DATE '2026-09-03', TIMESTAMP '2026-09-03 00:16:00'),
+    ('stg_orders',             DATE '2026-09-04', TIMESTAMP '2026-09-04 00:16:00'),
+    ('stg_orders',             DATE '2026-09-05', TIMESTAMP '2026-09-05 00:16:00'),
+    ('stg_orders',             DATE '2026-09-06', TIMESTAMP '2026-09-06 00:16:00'),
+    ('daily_revenue_pipeline', DATE '2026-09-03', TIMESTAMP '2026-09-03 00:21:00'),
+    ('daily_revenue_pipeline', DATE '2026-09-04', TIMESTAMP '2026-09-04 00:21:00'),
+    -- daily_revenue_pipeline / 2026-09-05: no successful write recorded.
+    ('daily_revenue_pipeline', DATE '2026-09-06', TIMESTAMP '2026-09-06 00:21:00'),
+    ('customer_ltv',           DATE '2026-09-06', TIMESTAMP '2026-09-06 01:01:00');
+    -- customer_ltv / 2026-09-07: no successful write recorded.

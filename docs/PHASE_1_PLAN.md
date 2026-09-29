@@ -1,7 +1,7 @@
 # Causiq — Phase 1 Evidence Surface Plan
 
 **Phase:** P1 — Full Evidence Surface
-**Status:** Approved — P1.1 and P1.2 complete; P1.3 onward not yet started
+**Status:** Approved — P1.1, P1.2, and P1.3 complete; P1.4 onward not yet started
 **Depends on:** `ENGINEERING_CONTRACT.md` v1.0, `PHASE_0_PLAN.md` (Phase 0 complete, P0.1–P0.7)
 **Last updated:** 2026-09-24
 
@@ -45,7 +45,7 @@ named `root_cause`, no causal conclusion encoded as data. The true cause must be
 relationship between planted facts* (a timestamp alignment, a status change, a query result),
 exactly like `INC-001`'s `revenue_daily` filter defect.
 
-### Class A — Pipeline / freshness failure
+### Class A — Pipeline / freshness failure — **solved by `INC-002` (P1.3)**
 
 - **Symptom:** a warehouse table has not refreshed on schedule; no error is visible in application
   logs.
@@ -93,9 +93,9 @@ generalizes rather than evidence the agent memorized one shape.
 | Warehouse | `WAREHOUSE` | Delivered, P0.5 | `query_warehouse` |
 | Airflow | `AIRFLOW` | **Delivered, P1.1** | `query_airflow_runs` |
 | dbt | `DBT` | **Delivered, P1.2** | `query_dbt_run_results` |
+| Data-quality results | `DATA_QUALITY` | **Delivered, P1.3** | `query_dq_check_results` |
 | Git | `GIT` | Deferred | P1.4 |
 | Deployment records | `DEPLOYMENT` | Deferred | P1.4 |
-| Data-quality results | `DATA_QUALITY` | Deferred | P1.3 |
 | Schema history | *(none yet — may reuse `WAREHOUSE`)* | Deferred | Decide at P1.5: likely additional DuckDB tables under `query_warehouse`, not a sixth tool (§8) |
 
 Every source is a `Tool` (ADR-0009). `Permission.ARTIFACTS_READ` is the one shared read
@@ -106,9 +106,9 @@ name, not by a separate permission each.
 
 | Milestone | Adds | Unlocks |
 |---|---|---|
-| **P1.1** | Airflow tool + artifact-fixture substrate + ADR-0009 (**this milestone, complete**) | Proves the pattern generalizes past the warehouse |
-| P1.2 | dbt `run_results.json` tool | Second source; still no full incident wired |
-| P1.3 | DQ-results tool + warehouse fixture extension (freshness columns) + `INC-002` + integration test | First of the 3 required incident-class proofs (Class A) |
+| **P1.1** | Airflow tool + artifact-fixture substrate + ADR-0009 | Proves the pattern generalizes past the warehouse |
+| **P1.2** | dbt `run_results.json` tool | Second source; still no full incident wired |
+| **P1.3** | DQ-results tool + `analytics.model_refresh_log` warehouse extension + `INC-002` + integration test (**this milestone, complete**) | First of the 3 required incident-class proofs (Class A) — **met** |
 | P1.4 | Git-log tool + deployment-records tool | Enables Class B |
 | P1.5 | `INC-003` fixtures + integration test; decide whether schema history needs a new tool or reuses `query_warehouse` | Second proof (Class B) |
 | P1.6 | `INC-004` fixtures + integration test, reusing P1.2/P1.4 tools | Third proof (Class C) — P1 exit criterion met |
@@ -224,5 +224,8 @@ by P1.1):
       `authz/`, `evidence/`) touched
 - [x] Reviewed and committed
 
-P1.2 (`DbtRunResultsTool`) followed this same pattern and is also complete. P1.3 planning begins
-next.
+P1.2 (`DbtRunResultsTool`) followed this same pattern and is also complete. P1.3
+(`DqCheckResultsTool` + `analytics.model_refresh_log` + `INC-002`) closed the first of the three
+required incident-class proofs — `Investigator`, `ToolExecutor`, `ToolRegistry`, `authz`,
+`EvidenceLedger`, and `evidence/ledger.py` all remained unmodified through all three milestones.
+P1.4 planning begins next.
